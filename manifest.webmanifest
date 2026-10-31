@@ -2,7 +2,7 @@
     "name": "Chessly — Opening Trainer",
     "short_name": "Chessly",
     "description": "Practice chess openings, explore lines and play against Stockfish.",
-    "id": "./",
+    "id": "/chessly/",
     "start_url": "./",
     "scope": "./",
     "display": "standalone",
