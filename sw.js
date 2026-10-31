@@ -6,7 +6,7 @@
  * right away and refreshed in the background, so a new version shows up on the next start.
  * Bump VERSION to drop the old cache completely.
  */
-const VERSION = 'chessly-v2';
+const VERSION = 'chessly-v3';
 
 const PRECACHE = [
     './',
