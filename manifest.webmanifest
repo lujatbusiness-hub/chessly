@@ -1,0 +1,17 @@
+{
+    "name": "Chessly — Opening Trainer",
+    "short_name": "Chessly",
+    "description": "Practice chess openings, explore lines and play against Stockfish.",
+    "id": "./",
+    "start_url": "./",
+    "scope": "./",
+    "display": "standalone",
+    "orientation": "any",
+    "background_color": "#0e1014",
+    "theme_color": "#161920",
+    "icons": [
+        { "src": "assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+        { "src": "assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+        { "src": "assets/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    ]
+}

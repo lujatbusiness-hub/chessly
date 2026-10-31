@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#161920">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Chessly — Opening Trainer</title>
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" type="image/png" sizes="192x192" href="assets/icons/icon-192.png">
+    <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+    <link rel="stylesheet" href="css/theme.css">
+    <link rel="stylesheet" href="css/style.css">
+    <style id="piece-tint-style"></style>
+</head>
+<body>
+    <header class="topbar">
+        <div class="topbar-left">
+            <button class="btn ghost small library-toggle" type="button" id="btn-library" title="Opening library (O)" aria-controls="library">&#9776; Openings</button>
+            <div class="brand"><span class="brand-mark">&#9822;</span>Chessly</div>
+            <div class="rating-chip" id="rating-chip" aria-live="polite">
+                <span class="rating-chip-part"><span>Training</span><strong id="rating-train"></strong></span>
+                <span class="rating-chip-part"><span>Games</span><strong id="rating-game"></strong></span>
+            </div>
+        </div>
+        <nav class="tabs" id="mode-tabs">
+            <button class="tab" type="button" data-mode="train">Training</button>
+            <button class="tab" type="button" data-mode="explore">Explorer</button>
+            <button class="tab" type="button" data-mode="free">Free play</button>
+            <button class="tab" type="button" data-mode="design">Design</button>
+        </nav>
+    </header>
+
+    <main class="layout">
+        <nav class="library" id="library" aria-label="Opening library">
+            <div class="library-head">
+                <h2>Openings</h2>
+                <input type="search" class="library-search" id="library-search" placeholder="Search name, ECO or line…" autocomplete="off">
+            </div>
+            <p class="library-lock">Round in progress — finish or end it to switch openings.</p>
+            <div class="library-list" id="library-list"></div>
+            <button class="btn small library-add" type="button" id="btn-library-add">+ Add your own opening</button>
+        </nav>
+        <div class="library-backdrop" id="library-backdrop"></div>
+
+        <section class="board-column">
+            <div class="board-frame"><div id="board"></div></div>
+        </section>
+
+        <aside class="sidebar">
+            <div class="board-toolbar">
+                <div class="turn-indicator" id="turn-indicator"></div>
+                <button class="btn ghost small" type="button" id="btn-flip" title="Flip board (F)">&#8645; Flip board</button>
+            </div>
+
+            <section class="card" id="opening-card">
+                <div class="card-head">
+                    <h2>Opening</h2>
+                    <button class="btn ghost small" type="button" id="btn-new-opening" title="Add your own opening line">+ New line</button>
+                </div>
+                <h3 class="opening-title" id="opening-title"></h3>
+                <p class="opening-meta" id="opening-meta"></p>
+                <p class="opening-desc" id="opening-desc"></p>
+                <div class="segmented" id="color-toggle">
+                    <button type="button" data-color="w">Play White</button>
+                    <button type="button" data-color="b">Play Black</button>
+                </div>
+                <div class="depth-picker">
+                    <div class="depth-head">
+                        <span class="depth-label">Moves to train</span>
+                        <span class="depth-note" id="depth-note"></span>
+                    </div>
+                    <div class="segmented depth-toggle" id="depth-toggle" role="radiogroup" aria-label="Moves to train"></div>
+                </div>
+                <ul class="line-list" id="line-list"></ul>
+                <button class="btn ghost small danger hidden" type="button" id="btn-delete-opening">Delete this opening</button>
+            </section>
+
+            <section class="card mode-panel round-card" data-panel="train" id="round-panel"></section>
+
+            <section class="card mode-panel" data-panel="explore">
+                <div class="btn-row nav-row">
+                    <button class="btn" type="button" id="btn-first" title="Start (Home)">&#9198;</button>
+                    <button class="btn" type="button" id="btn-prev" title="Back (&larr;)">&#9664;</button>
+                    <button class="btn" type="button" id="btn-next" title="Forward (&rarr;)">&#9654;</button>
+                    <button class="btn" type="button" id="btn-last" title="End (End)">&#9197;</button>
+                </div>
+                <div class="continuations" id="continuations"></div>
+                <button class="btn small explore-play" type="button" id="btn-explore-play" title="Continue this position as a game against Stockfish">&#9822; Play from here vs Stockfish</button>
+            </section>
+
+            <section class="card mode-panel" data-panel="free">
+                <div class="card-head">
+                    <h2>Opponent</h2>
+                    <span class="engine-state" id="engine-state"></span>
+                </div>
+                <div class="segmented" id="free-opponent" role="radiogroup" aria-label="Opponent">
+                    <button type="button" data-opponent="human">Two players</button>
+                    <button type="button" data-opponent="engine">Stockfish</button>
+                </div>
+                <div class="engine-settings" id="engine-settings">
+                    <div class="engine-level-head">
+                        <span class="engine-label">Strength</span>
+                        <span class="engine-level-name" id="engine-level-name"></span>
+                        <span class="engine-level-rating" id="engine-level-rating" title="Approximate rating"></span>
+                    </div>
+                    <input type="range" class="engine-level" id="engine-level" min="1" max="10" step="1" aria-label="Stockfish strength">
+                    <div class="engine-level-scale"><span>1</span><span>10</span></div>
+                    <span class="engine-label">You play</span>
+                    <div class="segmented" id="engine-side" role="radiogroup" aria-label="Your color">
+                        <button type="button" data-side="w">White</button>
+                        <button type="button" data-side="random">Random</button>
+                        <button type="button" data-side="b">Black</button>
+                    </div>
+                </div>
+                <div class="btn-row free-actions">
+                    <button class="btn" type="button" id="btn-free-new">New game</button>
+                    <button class="btn" type="button" id="btn-free-undo">Undo</button>
+                    <button class="btn primary" type="button" id="btn-free-save">Save as line</button>
+                    <button class="btn danger hidden" type="button" id="btn-free-resign" title="Give up this game (counts as a loss)">Resign</button>
+                </div>
+                <div class="rating-summary hidden" id="game-rating">
+                    <div><span class="rating-summary-label">Game rating</span>
+                        <strong class="rating-summary-value"></strong></div>
+                    <div class="rating-summary-meta"></div>
+                    <button class="btn ghost small" type="button" id="btn-game-rating-reset">Reset</button>
+                </div>
+                <p class="hint-text" id="free-hint"></p>
+            </section>
+
+            <section class="card mode-panel" data-panel="design">
+                <div class="card-head">
+                    <h2>Animation</h2>
+                    <span class="design-current" id="design-anim-name"></span>
+                </div>
+                <div class="design-grid anim-grid" id="design-anims" role="radiogroup" aria-label="Move animation"></div>
+                <p class="anim-desc" id="design-anim-desc"></p>
+                <div class="anim-controls">
+                    <div class="segmented" id="anim-speed" role="radiogroup" aria-label="Animation speed">
+                        <button type="button" data-speed="slow">Slow</button>
+                        <button type="button" data-speed="normal">Normal</button>
+                        <button type="button" data-speed="fast">Fast</button>
+                    </div>
+                    <button class="btn small" type="button" id="btn-anim-preview" title="Play a sample move (P)">&#9654; Preview</button>
+                </div>
+            </section>
+
+            <section class="card mode-panel" data-panel="design">
+                <div class="card-head">
+                    <h2>Sounds</h2>
+                    <span class="design-current" id="design-sound-name"></span>
+                </div>
+                <div class="design-grid sound-grid" id="design-sounds" role="radiogroup" aria-label="Sound pack"></div>
+                <p class="anim-desc" id="design-sound-desc"></p>
+                <div class="sound-controls">
+                    <label class="volume-control" title="Volume">
+                        <span class="volume-icon" aria-hidden="true">&#128264;</span>
+                        <input type="range" id="sound-volume" min="0" max="100" step="5" aria-label="Volume">
+                        <span class="volume-value" id="sound-volume-value"></span>
+                    </label>
+                    <button class="btn small" type="button" id="btn-sound-preview" title="Play sample sounds">&#9654; Preview</button>
+                </div>
+            </section>
+
+            <section class="card mode-panel" data-panel="design">
+                <div class="card-head">
+                    <h2>Board</h2>
+                    <span class="design-current" id="design-board-name"></span>
+                </div>
+                <div class="design-grid" id="design-boards" role="radiogroup" aria-label="Board"></div>
+            </section>
+
+            <section class="card mode-panel" data-panel="design">
+                <div class="card-head">
+                    <h2>Pieces</h2>
+                    <span class="design-current" id="design-pieces-name"></span>
+                </div>
+                <div class="design-grid" id="design-pieces" role="radiogroup" aria-label="Pieces"></div>
+            </section>
+            <section class="card mode-panel" data-panel="design">
+                <div class="card-head">
+                    <h2>Piece colors</h2>
+                    <button class="btn ghost small" type="button" id="btn-piece-colors-reset" title="Back to the colors of the piece set">Reset</button>
+                </div>
+                <div class="piece-color-row">
+                    <span class="piece-color-label">White</span>
+                    <div class="color-swatches" id="piece-colors-w" role="radiogroup" aria-label="White piece color"></div>
+                </div>
+                <div class="piece-color-row">
+                    <span class="piece-color-label">Black</span>
+                    <div class="color-swatches" id="piece-colors-b" role="radiogroup" aria-label="Black piece color"></div>
+                </div>
+            </section>
+
+            <div class="status" id="status"></div>
+
+            <section class="card" id="moves-card">
+                <h2>Moves</h2>
+                <div class="move-list" id="move-list"></div>
+            </section>
+        </aside>
+    </main>
+
+    <dialog class="dialog" id="line-dialog">
+        <form method="dialog" id="line-form">
+            <h3>Save opening line</h3>
+            <label class="field">
+                <span>Opening</span>
+                <select class="select" id="dlg-opening"></select>
+            </label>
+            <label class="field" id="dlg-name-field">
+                <span>Opening name</span>
+                <input type="text" id="dlg-opening-name" placeholder="e.g. My Sicilian" autocomplete="off">
+            </label>
+            <div class="field">
+                <span>Repertoire for</span>
+                <div class="segmented" id="dlg-side">
+                    <button type="button" data-color="w">White</button>
+                    <button type="button" data-color="b">Black</button>
+                </div>
+            </div>
+            <label class="field">
+                <span>Line name</span>
+                <input type="text" id="dlg-line-name" placeholder="e.g. Main line" autocomplete="off">
+            </label>
+            <label class="field">
+                <span>Moves (SAN or pasted PGN)</span>
+                <textarea id="dlg-moves" rows="4" placeholder="1. e4 c5 2. Nf3 d6 3. d4 cxd4"></textarea>
+            </label>
+            <p class="dlg-error" id="dlg-error"></p>
+            <div class="dialog-actions">
+                <button class="btn ghost" type="button" id="dlg-cancel">Cancel</button>
+                <button class="btn primary" type="submit">Save</button>
+            </div>
+        </form>
+    </dialog>
+
+    <!-- Color filters for custom piece colors (filled by js/app.js). -->
+    <svg class="piece-tint-defs" id="piece-tint-defs" width="0" height="0" aria-hidden="true" focusable="false"></svg>
+
+    <script src="js/config.js"></script>
+    <script src="js/chess.js"></script>
+    <script src="js/openings.js"></script>
+    <script src="js/sound.js"></script>
+    <script src="js/engine.js"></script>
+    <script src="js/rating.js"></script>
+    <script src="js/board.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/pwa.js"></script>
+</body>
+</html>

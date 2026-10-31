@@ -1,0 +1,1298 @@
+/*
+ * Chessly — design tokens.
+ * Change colors, fonts and board styling here; css/style.css only consumes these variables.
+ */
+/* Classic defaults. [data-board] resets every board element (also the Design tab swatches) to these
+   before a [data-board='<id>'] block below overrides them, so no token leaks from the active board. */
+:root,
+[data-board] {
+    color-scheme: dark;
+
+    /* Typography */
+    --font-ui: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    --font-coords: var(--font-ui);
+    --font-pieces: "Apple Symbols", "Segoe UI Symbol", "Noto Sans Symbols 2", "DejaVu Sans", serif;
+
+    /* App surfaces */
+    --bg: #0e1014;
+    --surface: #161920;
+    --surface-2: #1d2129;
+    --surface-3: #272c37;
+    --border: #2a303b;
+    --text: #e7e9ee;
+    --text-muted: #8e95a5;
+    --text-faint: #565d6c;
+    --radius: 12px;
+
+    /* Accents */
+    --accent: #8b9cff;
+    --accent-strong: #b6c0ff;
+    --accent-soft: rgba(139, 156, 255, 0.14);
+    --accent-contrast: #0e1014;
+    --success: #5ad19a;
+    --success-soft: rgba(90, 209, 154, 0.14);
+    --danger: #f2777a;
+    --danger-soft: rgba(242, 119, 122, 0.14);
+    --warning: #f3c86b;
+    --warning-soft: rgba(243, 200, 107, 0.14);
+
+    /* Board */
+    --sq-light: #a9b3c4;
+    --sq-dark: #56627a;
+    --sq-last-move: rgba(243, 200, 107, 0.38);
+    --sq-selected: rgba(139, 156, 255, 0.55);
+    --sq-hint: rgba(90, 209, 154, 0.6);
+    --sq-wrong: rgba(242, 119, 122, 0.65);
+    --sq-check: rgba(255, 70, 70, 0.95);
+    --sq-drag-over: rgba(255, 255, 255, 0.7);
+    --move-dot: rgba(14, 16, 20, 0.35);
+    --arrow: #5ad19a;
+    --board-radius: 6px;
+    --board-shadow: 0 24px 60px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.05);
+
+    /*
+     * Optional board artwork. A theme that sets --board-image draws the board from that image
+     * and makes the square fills transparent; --sq-light / --sq-dark then only describe its colors.
+     */
+    --board-image: none;
+    --sq-light-fill: var(--sq-light);
+    --sq-dark-fill: var(--sq-dark);
+    --coord-on-light: var(--sq-dark);
+    --coord-on-dark: var(--sq-light);
+
+    /* Frame around the board (padding is relative to the board width) */
+    --frame-padding: 0;
+    --frame-border: 0;
+    --frame-radius: var(--board-radius);
+    --frame-bg: transparent;
+
+}
+
+/* Piece colors: drive the built-in Unicode pieces and the turn indicator. */
+:root,
+[data-pieces] {
+    --piece-white: #f7f8fb;
+    --piece-white-outline: #15171d;
+    --piece-black: #14161b;
+    --piece-black-outline: rgba(255, 255, 255, 0.28);
+}
+
+/*
+ * Frostreich — icy blue board and pieces (assets/themes/frostreich).
+ * Board and frame colors match board.svg / board-framed.svg.
+ */
+[data-board='frostreich'] {
+    --font-coords: "Nunito", var(--font-ui);
+
+    --bg: #08121c;
+    --surface: #0d1b29;
+    --surface-2: #13263a;
+    --surface-3: #1b3249;
+    --border: #20384f;
+    --text: #e6f4ff;
+    --text-muted: #8fb0c8;
+    --text-faint: #4f6b82;
+
+    --accent: #9fd8ff;
+    --accent-strong: #c9f3ff;
+    --accent-soft: rgba(159, 216, 255, 0.14);
+    --accent-contrast: #0b1a29;
+
+    --sq-light: #5a86a6;
+    --sq-dark: #1d3449;
+    --sq-selected: rgba(159, 216, 255, 0.5);
+    --move-dot: rgba(11, 26, 41, 0.45);
+    --arrow: #7cc8f5;
+    --board-radius: 2%;
+
+    --frame-padding: 3.5%;
+    --frame-border: 2px solid #9fd8ff;
+    --frame-radius: 4.2%;
+    --frame-bg: #0d1b29;
+}
+
+/*
+ * Arkane Nacht — violet night board and pieces (assets/themes/arkane-nacht).
+ * Board and frame colors match board.svg / board-framed.svg.
+ */
+[data-board='arkane-nacht'] {
+    --font-coords: "Nunito", var(--font-ui);
+
+    --bg: #05060f;
+    --surface: #0c0d24;
+    --surface-2: #13153a;
+    --surface-3: #1c1f52;
+    --border: #24275e;
+    --text: #ece9ff;
+    --text-muted: #9b97c9;
+    --text-faint: #5a5790;
+
+    --accent: #8f7bff;
+    --accent-strong: #b9adff;
+    --accent-soft: rgba(143, 123, 255, 0.16);
+    --accent-contrast: #070818;
+
+    --sq-light: #4146a0;
+    --sq-dark: #1c1f52;
+    --sq-selected: rgba(143, 123, 255, 0.55);
+    --move-dot: rgba(7, 8, 24, 0.45);
+    --arrow: #ffd84d;
+    --board-radius: 2%;
+
+    --frame-padding: 3.5%;
+    --frame-border: 2px solid #8f7bff;
+    --frame-radius: 4.2%;
+    --frame-bg: #070818;
+}
+
+/*
+ * Aluminium — perforated metal board in a walnut frame, silver and black pieces (assets/themes/aluminium).
+ * Board artwork: board.svg; frame colors match board-framed.svg.
+ */
+[data-board='aluminium'] {
+    --bg: #0f1012;
+    --surface: #17181b;
+    --surface-2: #1f2125;
+    --surface-3: #2a2d32;
+    --border: #33363c;
+    --text: #eceef1;
+    --text-muted: #9a9fa8;
+    --text-faint: #5d626b;
+
+    --accent: #c6c9ce;
+    --accent-strong: #eceef1;
+    --accent-soft: rgba(198, 201, 206, 0.14);
+    --accent-contrast: #121316;
+
+    --board-image: url('../assets/themes/aluminium/board.svg');
+    --sq-light: #6b6f77;
+    --sq-dark: #2c2e33;
+    --sq-light-fill: transparent;
+    --sq-dark-fill: transparent;
+    --coord-on-light: #1d1f23;
+    --coord-on-dark: #9a9fa8;
+    --sq-selected: rgba(198, 201, 206, 0.45);
+    --move-dot: rgba(18, 19, 22, 0.5);
+    --arrow: #f3c86b;
+    --board-radius: 0.5%;
+
+    --frame-padding: 3.3%;
+    --frame-border: 2px solid #8b9098;
+    --frame-radius: 4%;
+    --frame-bg: #4a2c1a;
+}
+
+/*
+ * Ebenholz & Messing — ebony wood board, brass and ebony pieces (assets/themes/ebenholz-messing).
+ * Board artwork: board.svg; frame colors match board-framed.svg.
+ */
+[data-board='ebenholz-messing'] {
+    --bg: #0c0907;
+    --surface: #15100c;
+    --surface-2: #1e1712;
+    --surface-3: #2a2019;
+    --border: #3a2c20;
+    --text: #f1e6d4;
+    --text-muted: #b39d80;
+    --text-faint: #6e5b46;
+
+    --accent: #cfa65e;
+    --accent-strong: #ecd193;
+    --accent-soft: rgba(207, 166, 94, 0.15);
+    --accent-contrast: #120c08;
+
+    --board-image: url('../assets/themes/ebenholz-messing/board.svg');
+    --sq-light: #4a3526;
+    --sq-dark: #271a12;
+    --sq-light-fill: transparent;
+    --sq-dark-fill: transparent;
+    --coord-on-light: #d9b77a;
+    --coord-on-dark: #a07c45;
+    --sq-selected: rgba(207, 166, 94, 0.45);
+    --move-dot: rgba(10, 6, 3, 0.5);
+    --arrow: #ecd193;
+    --board-radius: 0.5%;
+
+    --frame-padding: 3.3%;
+    --frame-border: 2px solid #5a4128;
+    --frame-radius: 4%;
+    --frame-bg: #120c08;
+}
+
+/*
+ * Facette — faceted walnut board in a cream frame, cut ivory and black pieces (assets/themes/facette).
+ * Board artwork: board.svg; frame colors match board-framed.svg.
+ */
+[data-board='facette'] {
+    --bg: #110d0a;
+    --surface: #1a1511;
+    --surface-2: #241d17;
+    --surface-3: #30271f;
+    --border: #3b3026;
+    --text: #f3ede3;
+    --text-muted: #b4a594;
+    --text-faint: #6f6254;
+
+    --accent: #e9e2d4;
+    --accent-strong: #fffaf0;
+    --accent-soft: rgba(233, 226, 212, 0.14);
+    --accent-contrast: #241a12;
+
+    --board-image: url('../assets/themes/facette/board.svg');
+    --sq-light: #93663f;
+    --sq-dark: #714b2d;
+    --sq-light-fill: transparent;
+    --sq-dark-fill: transparent;
+    --coord-on-light: #4a2e18;
+    --coord-on-dark: #e2c29c;
+    --sq-selected: rgba(233, 226, 212, 0.45);
+    --move-dot: rgba(40, 25, 12, 0.4);
+    --arrow: #7fd6a4;
+    --board-radius: 0.5%;
+
+    --frame-padding: 3.3%;
+    --frame-border: 2px solid #c9bfae;
+    --frame-radius: 4%;
+    --frame-bg: #e9e2d4;
+}
+
+/*
+ * Obsidian & Gold — glossy black board with gold grid lines, gold and obsidian pieces
+ * (assets/themes/obsidian-gold). Board artwork: board.svg; frame colors match board-framed.svg.
+ */
+[data-board='obsidian-gold'] {
+    --bg: #050506;
+    --surface: #0e0e11;
+    --surface-2: #16161a;
+    --surface-3: #202026;
+    --border: #2b2720;
+    --text: #f2ead8;
+    --text-muted: #a8987a;
+    --text-faint: #5f5543;
+
+    --accent: #d4b06a;
+    --accent-strong: #e6cb8c;
+    --accent-soft: rgba(212, 176, 106, 0.14);
+    --accent-contrast: #0e0e11;
+
+    --board-image: url('../assets/themes/obsidian-gold/board.svg');
+    --sq-light: #19191d;
+    --sq-dark: #0e0e11;
+    --sq-light-fill: transparent;
+    --sq-dark-fill: transparent;
+    --coord-on-light: #b58b43;
+    --coord-on-dark: #b58b43;
+    --sq-last-move: rgba(212, 176, 106, 0.22);
+    --sq-selected: rgba(212, 176, 106, 0.38);
+    --move-dot: rgba(230, 203, 140, 0.32);
+    --arrow: #e6cb8c;
+    --board-radius: 0.5%;
+
+    --frame-padding: 3.3%;
+    --frame-border: 2px solid #8a6f3e;
+    --frame-radius: 4%;
+    --frame-bg: #050506;
+}
+
+/*
+ * Schiefer & Kupfer — slate board, copper and slate pieces (assets/themes/schiefer-kupfer).
+ * Board artwork: board.svg; frame colors match board-framed.svg.
+ */
+[data-board='schiefer-kupfer'] {
+    --bg: #0d0f11;
+    --surface: #15181b;
+    --surface-2: #1c2024;
+    --surface-3: #262b30;
+    --border: #30363c;
+    --text: #e9edf0;
+    --text-muted: #98a2ab;
+    --text-faint: #59626b;
+
+    --accent: #cf8455;
+    --accent-strong: #e8a77c;
+    --accent-soft: rgba(207, 132, 85, 0.15);
+    --accent-contrast: #1a1e22;
+
+    --board-image: url('../assets/themes/schiefer-kupfer/board.svg');
+    --sq-light: #3d444b;
+    --sq-dark: #2b3136;
+    --sq-light-fill: transparent;
+    --sq-dark-fill: transparent;
+    --coord-on-light: #d89169;
+    --coord-on-dark: #a8694a;
+    --sq-selected: rgba(207, 132, 85, 0.42);
+    --move-dot: rgba(10, 12, 14, 0.5);
+    --arrow: #e8a77c;
+    --board-radius: 0.5%;
+
+    --frame-padding: 3.3%;
+    --frame-border: 2px solid #3a4148;
+    --frame-radius: 4%;
+    --frame-bg: #1a1e22;
+}
+
+/*
+ * Schwarzer Marmor — black marble, ivory and black pieces (assets/themes/schwarzer-marmor).
+ * Board artwork: board.svg (veins removed); slim frame like the other boards.
+ */
+[data-board='schwarzer-marmor'] {
+    --bg: #08080a;
+    --surface: #121214;
+    --surface-2: #1a1a1d;
+    --surface-3: #242428;
+    --border: #2e2c2a;
+    --text: #f4f1ec;
+    --text-muted: #a9a297;
+    --text-faint: #625d55;
+
+    --accent: #e9e6e1;
+    --accent-strong: #ffffff;
+    --accent-soft: rgba(233, 230, 225, 0.12);
+    --accent-contrast: #121214;
+
+    --board-image: url('../assets/themes/schwarzer-marmor/board.svg');
+    --sq-light: #1b1b1e;
+    --sq-dark: #121214;
+    --sq-light-fill: transparent;
+    --sq-dark-fill: transparent;
+    --coord-on-light: #b8a790;
+    --coord-on-dark: #b8a790;
+    --sq-last-move: rgba(233, 230, 225, 0.12);
+    --sq-selected: rgba(233, 230, 225, 0.24);
+    --move-dot: rgba(244, 241, 236, 0.28);
+    --arrow: #d9c6a5;
+    --board-radius: 0;
+
+    --frame-padding: 3.3%;
+    --frame-border: 2px solid #3a3836;
+    --frame-radius: 4%;
+    --frame-bg: #0c0c0e;
+}
+
+/*
+ * Mondstein — moonlit dark stone board, moon-white and graphite pieces (assets/themes/mondstein).
+ * Board artwork: board.svg; frame colors match board-framed.svg.
+ */
+[data-board='mondstein'] {
+    --bg: #0a0b0d;
+    --surface: #121316;
+    --surface-2: #1a1b20;
+    --surface-3: #24262c;
+    --border: #2e3038;
+    --text: #eef1f7;
+    --text-muted: #9aa2b4;
+    --text-faint: #5a6070;
+
+    --accent: #c9d6ff;
+    --accent-strong: #e9edf5;
+    --accent-soft: rgba(201, 214, 255, 0.14);
+    --accent-contrast: #121316;
+
+    --board-image: url('../assets/themes/mondstein/board.svg');
+    --sq-light: #2b2c31;
+    --sq-dark: #1d1e22;
+    --sq-light-fill: transparent;
+    --sq-dark-fill: transparent;
+    --coord-on-light: #8f96aa;
+    --coord-on-dark: #8f96aa;
+    --sq-last-move: rgba(201, 214, 255, 0.16);
+    --sq-selected: rgba(201, 214, 255, 0.3);
+    --move-dot: rgba(233, 237, 245, 0.28);
+    --arrow: #c9d6ff;
+    --board-radius: 0;
+
+    --frame-padding: 3.3%;
+    --frame-border: 2px solid #3a3d46;
+    --frame-radius: 3.7%;
+    --frame-bg: #121316;
+}
+
+/*
+ * Neon-Raster — dark violet grid with neon lines, cyan and magenta glowing pieces (assets/themes/neon-raster).
+ * Board artwork: board.svg; frame colors match board-framed.svg.
+ */
+[data-board='neon-raster'] {
+    --bg: #05040b;
+    --surface: #0b0a17;
+    --surface-2: #121025;
+    --surface-3: #1b1836;
+    --border: #262148;
+    --text: #ecebff;
+    --text-muted: #9a95c9;
+    --text-faint: #57527f;
+
+    --accent: #7b5cff;
+    --accent-strong: #a993ff;
+    --accent-soft: rgba(123, 92, 255, 0.18);
+    --accent-contrast: #06050d;
+
+    --board-image: url('../assets/themes/neon-raster/board.svg');
+    --sq-light: #151233;
+    --sq-dark: #0d0b1c;
+    --sq-light-fill: transparent;
+    --sq-dark-fill: transparent;
+    --coord-on-light: #7b5cff;
+    --coord-on-dark: #7b5cff;
+    --sq-last-move: rgba(94, 242, 255, 0.16);
+    --sq-selected: rgba(123, 92, 255, 0.4);
+    --move-dot: rgba(94, 242, 255, 0.35);
+    --arrow: #5ef2ff;
+    --board-radius: 0;
+
+    --frame-padding: 3.3%;
+    --frame-border: 2px solid #7b5cff;
+    --frame-radius: 3.7%;
+    --frame-bg: #06050d;
+}
+
+/*
+ * Ochsenblut-Leder — oxblood leather board with tan stitching (assets/themes/ochsenblut-leder); its old pieces live on as Facette in ivory and charcoal.
+ * Board artwork: board.svg; frame colors match board-framed.svg.
+ */
+[data-board='ochsenblut-leder'] {
+    --bg: #120707;
+    --surface: #1e0c0c;
+    --surface-2: #291212;
+    --surface-3: #361a19;
+    --border: #47241f;
+    --text: #f6ece0;
+    --text-muted: #c2a58c;
+    --text-faint: #7a5c4c;
+
+    --accent: #c9a27a;
+    --accent-strong: #e6c9a6;
+    --accent-soft: rgba(201, 162, 122, 0.16);
+    --accent-contrast: #1e0c0c;
+
+    --board-image: url('../assets/themes/ochsenblut-leder/board.svg');
+    --sq-light: #6a2626;
+    --sq-dark: #3d1515;
+    --sq-light-fill: transparent;
+    --sq-dark-fill: transparent;
+    --coord-on-light: #e6c9a6;
+    --coord-on-dark: #c9a27a;
+    --sq-last-move: rgba(230, 201, 166, 0.28);
+    --sq-selected: rgba(230, 201, 166, 0.4);
+    --move-dot: rgba(20, 8, 8, 0.45);
+    --arrow: #e6c9a6;
+    --board-radius: 0;
+
+    --frame-padding: 3.3%;
+    --frame-border: 2px solid #c9a27a;
+    --frame-radius: 3.7%;
+    --frame-bg: #1e0c0c;
+}
+
+/*
+ * Terrazzo-Nacht — dark terrazzo with colored stone chips (assets/themes/terrazzo-nacht); its old pieces live on as Aluminium in ivory and black.
+ * Board artwork: board.svg; frame colors match board-framed.svg.
+ */
+[data-board='terrazzo-nacht'] {
+    --bg: #0c0c0d;
+    --surface: #151517;
+    --surface-2: #1d1d20;
+    --surface-3: #27272b;
+    --border: #33312e;
+    --text: #f1ede5;
+    --text-muted: #a9a196;
+    --text-faint: #625d56;
+
+    --accent: #d9a066;
+    --accent-strong: #ecc391;
+    --accent-soft: rgba(217, 160, 102, 0.15);
+    --accent-contrast: #151517;
+
+    --board-image: url('../assets/themes/terrazzo-nacht/board.svg');
+    --sq-light: #2c2c30;
+    --sq-dark: #1d1d20;
+    --sq-light-fill: transparent;
+    --sq-dark-fill: transparent;
+    --coord-on-light: #a9a196;
+    --coord-on-dark: #a9a196;
+    --sq-last-move: rgba(217, 160, 102, 0.22);
+    --sq-selected: rgba(217, 160, 102, 0.36);
+    --move-dot: rgba(241, 237, 229, 0.26);
+    --arrow: #d9a066;
+    --board-radius: 0;
+
+    --frame-padding: 3.3%;
+    --frame-border: 2px solid #3c3a37;
+    --frame-radius: 3.7%;
+    --frame-bg: #151517;
+}
+
+/*
+ * Tinte & Zinnober — ink-blue board (assets/themes/tinte-zinnober); its old pieces live on as Obsidian & Gold in vermilion and slate.
+ * Board artwork: board.svg; frame colors match board-framed.svg.
+ */
+[data-board='tinte-zinnober'] {
+    --bg: #080b16;
+    --surface: #0e1222;
+    --surface-2: #141a30;
+    --surface-3: #1d2440;
+    --border: #2a3252;
+    --text: #eef0f8;
+    --text-muted: #98a0bf;
+    --text-faint: #565e7f;
+
+    --accent: #ee6a50;
+    --accent-strong: #ff9580;
+    --accent-soft: rgba(238, 106, 80, 0.16);
+    --accent-contrast: #0e1222;
+
+    --board-image: url('../assets/themes/tinte-zinnober/board.svg');
+    --sq-light: #232b47;
+    --sq-dark: #161c31;
+    --sq-light-fill: transparent;
+    --sq-dark-fill: transparent;
+    --coord-on-light: #6f7aa3;
+    --coord-on-dark: #6f7aa3;
+    --sq-last-move: rgba(238, 106, 80, 0.22);
+    --sq-selected: rgba(238, 106, 80, 0.36);
+    --move-dot: rgba(238, 240, 248, 0.26);
+    --arrow: #ee6a50;
+    --board-radius: 0;
+
+    --frame-padding: 3.3%;
+    --frame-border: 2px solid #2e3758;
+    --frame-radius: 3.7%;
+    --frame-bg: #0e1222;
+}
+
+/*
+ * Bulle & Bär — trading-desk board with a candlestick chart, green bull and red bear pieces (assets/themes/bulle-baer).
+ * Board artwork: board.svg; frame matches board-framed.svg.
+ */
+[data-board='bulle-baer'] {
+    --bg: #05080a;
+    --surface: #0b1013;
+    --surface-2: #11181c;
+    --surface-3: #182227;
+    --border: #22302a;
+    --text: #e8f2ec;
+    --text-muted: #8fa59a;
+    --text-faint: #4e6158;
+    --accent: #3ddc84;
+    --accent-strong: #7ef0b0;
+    --accent-soft: rgba(61, 220, 132, 0.15);
+    --accent-contrast: #05080a;
+
+    --board-image: url('../assets/themes/bulle-baer/board.svg');
+    --sq-light: #10161a;
+    --sq-dark: #0b0f12;
+    --sq-light-fill: transparent;
+    --sq-dark-fill: transparent;
+    --coord-on-light: #4f6a5c;
+    --coord-on-dark: #4f6a5c;
+    --sq-last-move: rgba(245, 208, 107, 0.2);
+    --sq-selected: rgba(61, 220, 132, 0.32);
+    --move-dot: rgba(232, 242, 236, 0.24);
+    --arrow: #f5d06b;
+    --board-radius: 0;
+
+    --frame-padding: 3.3%;
+    --frame-border: 2px solid #22302a;
+    --frame-radius: 3.7%;
+    --frame-bg: #070a0c;
+}
+
+/*
+ * Hologramm — glowing blue grid, cyan and amber hologram pieces (assets/themes/hologramm).
+ * Board artwork: board.svg; frame matches board-framed.svg.
+ */
+[data-board='hologramm'] {
+    --bg: #02050a;
+    --surface: #06101a;
+    --surface-2: #0a1826;
+    --surface-3: #102234;
+    --border: #163652;
+    --text: #e6f9ff;
+    --text-muted: #86b4c8;
+    --text-faint: #456a80;
+    --accent: #7fe9ff;
+    --accent-strong: #c2f6ff;
+    --accent-soft: rgba(127, 233, 255, 0.14);
+    --accent-contrast: #03070d;
+
+    --board-image: url('../assets/themes/hologramm/board.svg');
+    --sq-light: #0a1a2a;
+    --sq-dark: #071220;
+    --sq-light-fill: transparent;
+    --sq-dark-fill: transparent;
+    --coord-on-light: #2fb6d8;
+    --coord-on-dark: #2fb6d8;
+    --sq-last-move: rgba(127, 233, 255, 0.18);
+    --sq-selected: rgba(127, 233, 255, 0.34);
+    --move-dot: rgba(127, 233, 255, 0.3);
+    --arrow: #ffb36b;
+    --board-radius: 0;
+
+    --frame-padding: 3.3%;
+    --frame-border: 2px solid #2fb6d8;
+    --frame-radius: 3.7%;
+    --frame-bg: #03070d;
+}
+
+/*
+ * Orbitalstation — riveted steel deck in a hazard-stripe frame, steel/teal and black/orange pieces (assets/themes/orbitalstation).
+ * Board artwork: board.svg; frame matches board-framed.svg.
+ */
+[data-board='orbitalstation'] {
+    --bg: #0b0d10;
+    --surface: #14171b;
+    --surface-2: #1b1f24;
+    --surface-3: #252a31;
+    --border: #30363e;
+    --text: #eef2f5;
+    --text-muted: #9aa6b1;
+    --text-faint: #58626d;
+    --accent: #f2b632;
+    --accent-strong: #ffd27a;
+    --accent-soft: rgba(242, 182, 50, 0.15);
+    --accent-contrast: #15171a;
+
+    --board-image: url('../assets/themes/orbitalstation/board.svg');
+    --sq-light: #2a3038;
+    --sq-dark: #1c2026;
+    --sq-light-fill: transparent;
+    --sq-dark-fill: transparent;
+    --coord-on-light: #8a96a3;
+    --coord-on-dark: #8a96a3;
+    --sq-last-move: rgba(242, 182, 50, 0.24);
+    --sq-selected: rgba(47, 230, 208, 0.32);
+    --move-dot: rgba(10, 12, 15, 0.5);
+    --arrow: #2fe6d0;
+    --board-radius: 0;
+
+    --frame-padding: 3.333%;
+    --frame-border: 0;
+    --frame-radius: 3.7%;
+    --frame-bg: #15171a url('../assets/themes/orbitalstation/board-framed.svg') center / 100% 100% no-repeat;
+}
+
+/*
+ * Platine — green circuit board with gold traces, gold and black LED pieces (assets/themes/platine).
+ * Board artwork: board.svg; frame matches board-framed.svg.
+ */
+[data-board='platine'] {
+    --bg: #030b07;
+    --surface: #071510;
+    --surface-2: #0b1f17;
+    --surface-3: #112b20;
+    --border: #1a3d2d;
+    --text: #eaf6ef;
+    --text-muted: #8fb5a2;
+    --text-faint: #4d6f5f;
+    --accent: #d4af37;
+    --accent-strong: #ecd27a;
+    --accent-soft: rgba(212, 175, 55, 0.15);
+    --accent-contrast: #06150e;
+
+    --board-image: url('../assets/themes/platine/board.svg');
+    --sq-light: #0f3d2a;
+    --sq-dark: #0a2b1e;
+    --sq-light-fill: transparent;
+    --sq-dark-fill: transparent;
+    --coord-on-light: #d4af37;
+    --coord-on-dark: #a8842f;
+    --sq-last-move: rgba(212, 175, 55, 0.24);
+    --sq-selected: rgba(61, 255, 139, 0.28);
+    --move-dot: rgba(3, 11, 7, 0.45);
+    --arrow: #3dff8b;
+    --board-radius: 0;
+
+    --frame-padding: 3.3%;
+    --frame-border: 2px solid #d4af37;
+    --frame-radius: 3.7%;
+    --frame-bg: #06150e;
+}
+
+/*
+ * Rohstoffe — raw earth board with glowing ore deposits, gold and coal pieces (assets/themes/rohstoffe).
+ * Board artwork: board.svg; frame matches board-framed.svg.
+ */
+[data-board='rohstoffe'] {
+    --bg: #0a0806;
+    --surface: #13100d;
+    --surface-2: #1b1713;
+    --surface-3: #25201a;
+    --border: #332b22;
+    --text: #f3ebdd;
+    --text-muted: #ad9d84;
+    --text-faint: #665a49;
+    --accent: #f2c14e;
+    --accent-strong: #ffd987;
+    --accent-soft: rgba(242, 193, 78, 0.15);
+    --accent-contrast: #120f0c;
+
+    --board-image: url('../assets/themes/rohstoffe/board.svg');
+    --sq-light: #3a332b;
+    --sq-dark: #1f1b16;
+    --sq-light-fill: transparent;
+    --sq-dark-fill: transparent;
+    --coord-on-light: #b8862a;
+    --coord-on-dark: #8a6a2a;
+    --sq-last-move: rgba(242, 193, 78, 0.22);
+    --sq-selected: rgba(124, 92, 255, 0.36);
+    --move-dot: rgba(10, 8, 6, 0.45);
+    --arrow: #9c84ff;
+    --board-radius: 0;
+
+    --frame-padding: 3.3%;
+    --frame-border: 2px solid #8a6a2a;
+    --frame-radius: 3.7%;
+    --frame-bg: #120f0c;
+}
+
+/*
+ * Ticker-Terminal — amber trading terminal, amber and steel pieces (assets/themes/ticker-terminal).
+ * Board artwork: board.svg; frame matches board-framed.svg.
+ */
+[data-board='ticker-terminal'] {
+    --bg: #030303;
+    --surface: #0a0907;
+    --surface-2: #110f0b;
+    --surface-3: #1a1610;
+    --border: #2c2410;
+    --text: #ffeccc;
+    --text-muted: #b39a6a;
+    --text-faint: #6a5b3d;
+    --accent: #ffb000;
+    --accent-strong: #ffd36b;
+    --accent-soft: rgba(255, 176, 0, 0.14);
+    --accent-contrast: #050505;
+
+    --board-image: url('../assets/themes/ticker-terminal/board.svg');
+    --sq-light: #17130a;
+    --sq-dark: #0b0a08;
+    --sq-light-fill: transparent;
+    --sq-dark-fill: transparent;
+    --coord-on-light: #b87700;
+    --coord-on-dark: #b87700;
+    --sq-last-move: rgba(255, 176, 0, 0.18);
+    --sq-selected: rgba(255, 176, 0, 0.32);
+    --move-dot: rgba(255, 236, 204, 0.24);
+    --arrow: #ffb000;
+    --board-radius: 0;
+
+    --frame-padding: 3.3%;
+    --frame-border: 2px solid #5a4210;
+    --frame-radius: 3.7%;
+    --frame-bg: #050505;
+}
+
+/*
+ * Inlay — walnut and stone marquetry board with brass lines, turned maple and ebony pieces with brass inlay
+ * (assets/themes/inlay). Board artwork: board.svg; frame colors match board-framed.svg.
+ */
+[data-board='inlay'] {
+    --bg: #120d09;
+    --surface: #1c150f;
+    --surface-2: #261d15;
+    --surface-3: #33271c;
+    --border: #45351f;
+    --text: #f4ecdc;
+    --text-muted: #c2ad8a;
+    --text-faint: #7a6648;
+
+    --accent: #c9a35a;
+    --accent-strong: #e8cc8e;
+    --accent-soft: rgba(201, 163, 90, 0.16);
+    --accent-contrast: #1c150f;
+
+    --board-image: url('../assets/themes/inlay/board.svg');
+    --sq-light: #d9c7a5;
+    --sq-dark: #302f2c;
+    --sq-light-fill: transparent;
+    --sq-dark-fill: transparent;
+    --coord-on-light: #4a3a22;
+    --coord-on-dark: #d9c7a5;
+    --sq-selected: rgba(201, 163, 90, 0.45);
+    --move-dot: rgba(30, 22, 12, 0.4);
+    --arrow: #c9a35a;
+    --board-radius: 0;
+
+    --frame-padding: 3.3%;
+    --frame-border: 2px solid #b18a55;
+    --frame-radius: 4%;
+    --frame-bg: #6e4a2c;
+}
+
+/*
+ * Stainless Steel — brushed steel board with alternating grain, machined polished-steel and gunmetal pieces
+ * (assets/themes/stainless-steel). Board artwork: board.svg; frame colors match board-framed.svg.
+ */
+[data-board='stainless-steel'] {
+    --bg: #0e1013;
+    --surface: #171a1e;
+    --surface-2: #1f2328;
+    --surface-3: #2a2f35;
+    --border: #383e45;
+    --text: #eef1f3;
+    --text-muted: #a9b1b8;
+    --text-faint: #646c73;
+
+    --accent: #c4cbd0;
+    --accent-strong: #f2f4f6;
+    --accent-soft: rgba(196, 203, 208, 0.14);
+    --accent-contrast: #171a1e;
+
+    --board-image: url('../assets/themes/stainless-steel/board.svg');
+    --sq-light: #d9dde0;
+    --sq-dark: #252a2e;
+    --sq-light-fill: transparent;
+    --sq-dark-fill: transparent;
+    --coord-on-light: #3a4148;
+    --coord-on-dark: #c4cbd0;
+    --sq-selected: rgba(120, 190, 255, 0.4);
+    --move-dot: rgba(20, 24, 28, 0.4);
+    --arrow: #6fb8ff;
+    --board-radius: 0;
+
+    --frame-padding: 3.3%;
+    --frame-border: 2px solid #7b858d;
+    --frame-radius: 4%;
+    --frame-bg: #aab2b8;
+}
+
+/*
+ * Concrete — raw cast concrete slabs with pores and a formwork frame, light and anthracite concrete pieces
+ * (assets/themes/concrete). Board artwork: board.svg; frame colors match board-framed.svg.
+ */
+[data-board='concrete'] {
+    --bg: #121314;
+    --surface: #1b1c1e;
+    --surface-2: #232527;
+    --surface-3: #2e3032;
+    --border: #3a3c3e;
+    --text: #ecebe7;
+    --text-muted: #aaa8a2;
+    --text-faint: #6b6a66;
+
+    --accent: #c7c5bf;
+    --accent-strong: #ecebe6;
+    --accent-soft: rgba(199, 197, 191, 0.14);
+    --accent-contrast: #1b1c1e;
+
+    --board-image: url('../assets/themes/concrete/board.svg');
+    --sq-light: #bdbab3;
+    --sq-dark: #5e6163;
+    --sq-light-fill: transparent;
+    --sq-dark-fill: transparent;
+    --coord-on-light: #45484a;
+    --coord-on-dark: #d6d3cc;
+    --sq-last-move: rgba(240, 215, 162, 0.32);
+    --sq-selected: rgba(240, 215, 162, 0.45);
+    --move-dot: rgba(30, 31, 32, 0.4);
+    --arrow: #e8b04a;
+    --board-radius: 0;
+
+    --frame-padding: 3.3%;
+    --frame-border: 2px solid #6f6c67;
+    --frame-radius: 1.7%;
+    --frame-bg: #93908a;
+}
+
+/*
+ * 3D Print — light and dark print-bed tiles with layer and PEI texture in a steel bed frame, white and black
+ * PLA lattice pieces (assets/themes/3d-print). Board artwork: board.svg; frame colors match board-framed.svg.
+ */
+[data-board='3d-print'] {
+    --bg: #0f1215;
+    --surface: #171b1f;
+    --surface-2: #1f2429;
+    --surface-3: #293037;
+    --border: #333b43;
+    --text: #e9edf0;
+    --text-muted: #9aa4ab;
+    --text-faint: #5d666d;
+
+    --accent: #8295a4;
+    --accent-strong: #b7c6d1;
+    --accent-soft: rgba(130, 149, 164, 0.16);
+    --accent-contrast: #0f1215;
+
+    --board-image: url('../assets/themes/3d-print/board.svg');
+    --sq-light: #dce0e2;
+    --sq-dark: #32373d;
+    --sq-light-fill: transparent;
+    --sq-dark-fill: transparent;
+    --coord-on-light: #32373d;
+    --coord-on-dark: #c4c9cc;
+    --sq-last-move: rgba(255, 140, 50, 0.3);
+    --sq-selected: rgba(255, 140, 50, 0.45);
+    --move-dot: rgba(20, 23, 27, 0.4);
+    --arrow: #ff8c32;
+    --board-radius: 0;
+
+    --frame-padding: 3.3%;
+    --frame-border: 2px solid #5f676d;
+    --frame-radius: 2.3%;
+    --frame-bg: #8a9298;
+}
+
+/*
+ * Origami — folded paper board with crease lines, off-white and ink-navy folded paper pieces (assets/themes/origami).
+ * Board artwork: board.svg; frame colors match board-framed.svg.
+ */
+[data-board='origami'] {
+    --bg: #14161c;
+    --surface: #1d2029;
+    --surface-2: #262a35;
+    --surface-3: #313542;
+    --border: #3d4250;
+    --text: #f3f1ea;
+    --text-muted: #b4b0a6;
+    --text-faint: #6f6c66;
+
+    --accent: #e9e5dc;
+    --accent-strong: #ffffff;
+    --accent-soft: rgba(233, 229, 220, 0.14);
+    --accent-contrast: #232838;
+
+    --board-image: url('../assets/themes/origami/board.svg');
+    --sq-light: #e7e2d6;
+    --sq-dark: #3b404c;
+    --sq-light-fill: transparent;
+    --sq-dark-fill: transparent;
+    --coord-on-light: #3b404c;
+    --coord-on-dark: #e7e2d6;
+    --sq-selected: rgba(224, 100, 74, 0.38);
+    --move-dot: rgba(35, 40, 56, 0.4);
+    --arrow: #e0644a;
+    --board-radius: 0.5%;
+
+    --frame-padding: 3.3%;
+    --frame-border: 2px solid #aaa59b;
+    --frame-radius: 4%;
+    --frame-bg: #e9e5dc;
+}
+
+/*
+ * Crystal — icy blue mineral board, clear and smoky translucent cut-gem pieces (assets/themes/crystal).
+ * Board artwork: board.svg; frame colors match board-framed.svg.
+ */
+[data-board='crystal'] {
+    --bg: #0c141c;
+    --surface: #13202b;
+    --surface-2: #1a2a37;
+    --surface-3: #223545;
+    --border: #2c4354;
+    --text: #eef8fb;
+    --text-muted: #a3c0cc;
+    --text-faint: #5f7b88;
+
+    --accent: #a9d3e1;
+    --accent-strong: #e2f5fb;
+    --accent-soft: rgba(169, 211, 225, 0.16);
+    --accent-contrast: #13202b;
+
+    --board-image: url('../assets/themes/crystal/board.svg');
+    --sq-light: #d4e7ef;
+    --sq-dark: #26394c;
+    --sq-light-fill: transparent;
+    --sq-dark-fill: transparent;
+    --coord-on-light: #26394c;
+    --coord-on-dark: #a9d3e1;
+    --sq-selected: rgba(127, 214, 240, 0.42);
+    --move-dot: rgba(16, 30, 44, 0.4);
+    --arrow: #7fd6f0;
+    --board-radius: 0.5%;
+
+    --frame-padding: 3.3%;
+    --frame-border: 2px solid #7b9ba9;
+    --frame-radius: 4%;
+    --frame-bg: #dcecf2;
+}
+
+/*
+ * Evolution — sage-green board dotted with faint cells, a timeline of figures from cell to human
+ * (assets/themes/evolution). Board artwork: board.svg; frame colors match board-framed.svg.
+ */
+[data-board='evolution'] {
+    --bg: #0e1610;
+    --surface: #152019;
+    --surface-2: #1c2a21;
+    --surface-3: #24352a;
+    --border: #2f4436;
+    --text: #eef3e4;
+    --text-muted: #a9b99a;
+    --text-faint: #64765c;
+
+    --accent: #c8d4ad;
+    --accent-strong: #e6eed6;
+    --accent-soft: rgba(200, 212, 173, 0.15);
+    --accent-contrast: #1b2a1f;
+
+    --board-image: url('../assets/themes/evolution/board.svg');
+    --sq-light: #c8d4ad;
+    --sq-dark: #5b7c5c;
+    --sq-light-fill: transparent;
+    --sq-dark-fill: transparent;
+    --coord-on-light: #3f5e46;
+    --coord-on-dark: #dfe8cc;
+    --sq-selected: rgba(240, 246, 226, 0.45);
+    --move-dot: rgba(20, 40, 24, 0.4);
+    --arrow: #e2b44f;
+    --board-radius: 0.5%;
+
+    --frame-padding: 3.3%;
+    --frame-border: 2px solid #6d8063;
+    --frame-radius: 4%;
+    --frame-bg: #22352a;
+}
+
+/*
+ * Nature vs Technology — sand and graphite board, wood grain on the left half and circuit traces on the right;
+ * organic white pieces against engineered steel black pieces (assets/themes/nature-tech).
+ * Board artwork: board.svg; frame colors match board-framed.svg.
+ */
+[data-board='nature-tech'] {
+    --bg: #111313;
+    --surface: #1a1c1b;
+    --surface-2: #232624;
+    --surface-3: #2d312f;
+    --border: #3a3f3c;
+    --text: #f0ebdf;
+    --text-muted: #b3ab98;
+    --text-faint: #6c6a60;
+
+    --accent: #b5d17f;
+    --accent-strong: #d4e8ad;
+    --accent-soft: rgba(181, 209, 127, 0.15);
+    --accent-contrast: #1d2614;
+
+    --board-image: url('../assets/themes/nature-tech/board.svg');
+    --sq-light: #c8b48c;
+    --sq-dark: #2e3436;
+    --sq-light-fill: transparent;
+    --sq-dark-fill: transparent;
+    --coord-on-light: #4d3a22;
+    --coord-on-dark: #c8b48c;
+    --sq-selected: rgba(181, 209, 127, 0.42);
+    --move-dot: rgba(20, 22, 22, 0.4);
+    --arrow: #9fe6ff;
+    --board-radius: 0.5%;
+
+    --frame-padding: 3.3%;
+    --frame-border: 2px solid #8f8a7a;
+    --frame-radius: 4%;
+    --frame-bg: linear-gradient(90deg, #6b5232 0%, #5a5037 45%, #4f585c 55%, #3d464b 100%);
+}
+
+/*
+ * Glibber-Bande — dark violet board, slime-blob pieces with faces and golden crowns (green vs violet)
+ * (assets/themes/glibber-bande). Board artwork: board.svg; frame colors match board-framed.svg.
+ */
+[data-board='glibber-bande'] {
+    --bg: #0f0b16;
+    --surface: #18121f;
+    --surface-2: #211a2c;
+    --surface-3: #2c2339;
+    --border: #3b3150;
+    --text: #f3eefc;
+    --text-muted: #b3a7c9;
+    --text-faint: #6f6385;
+
+    --accent: #b6f36b;
+    --accent-strong: #d4ff9e;
+    --accent-soft: rgba(182, 243, 107, 0.15);
+    --accent-contrast: #1b2a0e;
+
+    --board-image: url('../assets/themes/glibber-bande/board.svg');
+    --sq-light: #3b3150;
+    --sq-dark: #241d33;
+    --sq-light-fill: transparent;
+    --sq-dark-fill: transparent;
+    --coord-on-light: #8d80a8;
+    --coord-on-dark: #8d80a8;
+    --sq-last-move: rgba(255, 216, 77, 0.24);
+    --sq-selected: rgba(182, 243, 107, 0.32);
+    --move-dot: rgba(182, 243, 107, 0.45);
+    --arrow: #ffd84d;
+    --board-radius: 0;
+
+    --frame-padding: 3.3%;
+    --frame-border: 2px solid #b6f36b;
+    --frame-radius: 3.7%;
+    --frame-bg: #140f1d;
+}
+
+/*
+ * Turnier-Klassik — tournament green and cream board, outlined classic Staunton pieces
+ * (assets/themes/turnier-klassik). Board artwork: board.svg; frame colors match board-framed.svg.
+ */
+[data-board='turnier-klassik'] {
+    --bg: #121411;
+    --surface: #1c1f1a;
+    --surface-2: #252922;
+    --surface-3: #30352c;
+    --border: #3c4a33;
+    --text: #f0f0e4;
+    --text-muted: #b2b8a4;
+    --text-faint: #6d7364;
+
+    --accent: #8fb366;
+    --accent-strong: #b5d68c;
+    --accent-soft: rgba(143, 179, 102, 0.16);
+    --accent-contrast: #1c1f1a;
+
+    --board-image: url('../assets/themes/turnier-klassik/board.svg');
+    --sq-light: #eeeed2;
+    --sq-dark: #769656;
+    --sq-light-fill: transparent;
+    --sq-dark-fill: transparent;
+    --coord-on-light: #769656;
+    --coord-on-dark: #eeeed2;
+    --sq-last-move: rgba(246, 246, 105, 0.45);
+    --sq-selected: rgba(246, 246, 105, 0.6);
+    --move-dot: rgba(20, 30, 10, 0.25);
+    --arrow: #f2a33a;
+    --board-radius: 0;
+
+    --frame-padding: 3.3%;
+    --frame-border: 2px solid #3c4a33;
+    --frame-radius: 3.7%;
+    --frame-bg: #1c1f1a;
+}
+
+/*
+ * Turnier-Klassik Nacht — dimmed dark-green tournament board for the Turnier-Klassik pieces
+ * (assets/themes/turnier-klassik-nacht). Board artwork: board.svg; frame colors match board-framed.svg.
+ */
+[data-board='turnier-klassik-nacht'] {
+    --bg: #0e100c;
+    --surface: #161a13;
+    --surface-2: #1f241b;
+    --surface-3: #292f24;
+    --border: #3c4a33;
+    --text: #e8eadf;
+    --text-muted: #a5ab98;
+    --text-faint: #646a5a;
+
+    --accent: #8fb366;
+    --accent-strong: #b5d68c;
+    --accent-soft: rgba(143, 179, 102, 0.16);
+    --accent-contrast: #161a13;
+
+    --board-image: url('../assets/themes/turnier-klassik-nacht/board.svg');
+    --sq-light: #5b6b4c;
+    --sq-dark: #33422b;
+    --sq-light-fill: transparent;
+    --sq-dark-fill: transparent;
+    --coord-on-light: #c3cfb2;
+    --coord-on-dark: #8f9d7f;
+    --sq-last-move: rgba(220, 220, 90, 0.28);
+    --sq-selected: rgba(220, 220, 90, 0.4);
+    --move-dot: rgba(10, 14, 8, 0.35);
+    --arrow: #f2a33a;
+    --board-radius: 0;
+
+    --frame-padding: 3.3%;
+    --frame-border: 2px solid #3c4a33;
+    --frame-radius: 3.7%;
+    --frame-bg: #161a13;
+}
+
+/* Piece colors per piece set (turn indicator; Unicode outline colors stay the classic ones). */
+
+[data-pieces='frostreich'] {
+    --piece-white: #eef9ff;
+    --piece-black: #4c5f8a;
+}
+
+[data-pieces='arkane-nacht'] {
+    --piece-white: #e6ecff;
+    --piece-black: #a25cff;
+}
+
+[data-pieces='aluminium'] {
+    --piece-white: #eceef1;
+    --piece-black: #2c2e33;
+}
+
+[data-pieces='facette'] {
+    --piece-white: #e4e0d8;
+    --piece-black: #26221f;
+}
+
+[data-pieces='obsidian-gold'] {
+    --piece-white: #e6cb8c;
+    --piece-black: #2a2a30;
+}
+
+[data-pieces='mondstein'] {
+    --piece-white: #e9edf5;
+    --piece-black: #3a3c45;
+}
+
+[data-pieces='neon-raster'] {
+    --piece-white: #5ef2ff;
+    --piece-black: #ff4fd8;
+}
+
+[data-pieces='bulle-baer'] {
+    --piece-white: #3ddc84;
+    --piece-black: #ff5a5f;
+}
+
+[data-pieces='orbitalstation'] {
+    --piece-white: #e8eef2;
+    --piece-black: #1f2329;
+}
+
+[data-pieces='rohstoffe'] {
+    --piece-white: #f2c14e;
+    --piece-black: #2e2a25;
+}
+
+[data-pieces='inlay'] {
+    --piece-white: #e6cf9f;
+    --piece-black: #352e29;
+}
+
+[data-pieces='stainless-steel'] {
+    --piece-white: #c4cbd1;
+    --piece-black: #3a3f45;
+}
+
+[data-pieces='concrete'] {
+    --piece-white: #d0cdc6;
+    --piece-black: #3e4144;
+}
+
+[data-pieces='3d-print'] {
+    --piece-white: #f3f4f1;
+    --piece-black: #5a6067;
+}
+
+[data-pieces='origami'] {
+    --piece-white: #ece7db;
+    --piece-black: #323a55;
+}
+
+[data-pieces='crystal'] {
+    --piece-white: #d3edf7;
+    --piece-black: #41607b;
+}
+
+[data-pieces='evolution'] {
+    --piece-white: #d8e4c4;
+    --piece-black: #2a4231;
+}
+
+[data-pieces='nature-tech'] {
+    --piece-white: #ead6af;
+    --piece-black: #69747b;
+}
+
+[data-pieces='glibber-bande'] {
+    --piece-white: #b6f36b;
+    --piece-black: #a07aff;
+}
+
+[data-pieces='turnier-klassik'] {
+    --piece-white: #f7f7f3;
+    --piece-black: #565656;
+}
