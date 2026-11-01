@@ -266,8 +266,28 @@
         if (master) master.gain.setTargetAtTime(volume, ctx.currentTime, 0.02);
     }
 
-    // Browsers block audio until the first user gesture; unlock it then so the first move already sounds.
-    ['pointerdown', 'keydown'].forEach((type) => root.addEventListener(type, () => audio(), { once: true, capture: true }));
+    // Browsers block audio until a user gesture. iOS Safari only accepts some gestures (touchend, click,
+    // keydown, not touchstart/pointerdown) and also wants a sound started inside that gesture, so every
+    // candidate event tries to unlock with a silent buffer until the context is running.
+    const UNLOCK_EVENTS = ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown'];
+    function unlock() {
+        const context = audio();
+        if (!context) return;
+        const silent = context.createBufferSource();
+        silent.buffer = context.createBuffer(1, 1, 22050);
+        silent.connect(context.destination);
+        silent.start(0);
+        const done = () => UNLOCK_EVENTS.forEach((type) => root.removeEventListener(type, unlock, true));
+        if (context.state === 'running') done();
+        else context.resume().then(() => context.state === 'running' && done(), () => {});
+    }
+    UNLOCK_EVENTS.forEach((type) => root.addEventListener(type, unlock, { capture: true, passive: true }));
+    // iOS suspends audio when the app goes to the background; resume on return.
+    if (root.document) {
+        root.document.addEventListener('visibilitychange', () => {
+            if (root.document.visibilityState === 'visible' && ctx && ctx.state !== 'running') ctx.resume().catch(() => {});
+        });
+    }
 
     root.ChesslySound = {
         PACKS: PACKS.map(({ id, name, description, bars }) => ({ id, name, description, bars })),

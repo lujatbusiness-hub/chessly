@@ -1,6 +1,6 @@
 # Chessly
 
-A small, dependency-free browser app for practicing chess openings.
+A small, dependency-free browser app for practicing chess openings and solving tactics puzzles.
 
 ## Run
 
@@ -37,19 +37,30 @@ copy, separate from the computer.
   After a round (or via End round) you are back in the lobby to pick another opening, line or color.
 - **Explorer**: step through the opening tree (← → Home End). Branch points show all continuations.
   The explorer follows the same move depth as training.
+- **Puzzles**: 4,800 tactics puzzles from the [Lichess puzzle database](https://database.lichess.org/#puzzles)
+  (CC0). The opponent plays the first move, then you find the best move for your side; the opponent's replies are
+  played for you, and any mating move counts as correct. Puzzles are picked near your puzzle rating, adjusted by
+  **Difficulty** (Easiest −600 … Hardest +600), and can be limited to a **Theme** (mate in 2, fork, pin, endgames …).
+  Puzzles you have seen don't come up again until you have been through the others. **Hint** highlights the piece,
+  then its target square; **Show solution** plays the rest; **Retry** replays a puzzle for practice; **Play on vs
+  Stockfish** continues the final position as a game; the puzzle number links to the puzzle on Lichess. The puzzle
+  rating and themes are shown once the puzzle is solved.
 - **Free play**: play both sides on one board, or against **Stockfish**. Pick the strength from 1 (*Beginner*, ≈ 800)
   to 10 (*Maximum*, full engine strength) and your color (White, Black or Random). Changing the opponent or color starts a new
   game; the strength applies from Stockfish's next move. **Undo** takes back your move and Stockfish's reply. Use
   **Save as line** to turn a game into your own opening. **Play from here vs Stockfish** (Explorer) and **Play on vs
   Stockfish** (after a training round) continue an opening position as a game. The ratings are rough guides: levels 1–3
   limit Stockfish's skill and search depth, levels 4–9 use its built-in rating limiter.
-- **Elo ratings**: two separate ratings, shown in the top bar (a `?` means provisional, fewer than 20 rated results).
+- **Elo ratings**: three separate ratings, shown in the top bar (a `?` means provisional, fewer than 20 rated results).
   - *Training rating*: the first test of every training round counts as a game against the line. The line rating grows
     with the moves you play from memory (600 + 70 per move, 400–2600); a perfect run scores 100 %, every mistake costs
     25 % and every hint 15 %. Retries right after are practice and not rated. Shown in the training lobby and result.
   - *Game rating*: every finished game against Stockfish (win 1, draw ½, loss 0) against the level's rating
     (≈ 800 … 3000). **Resign** counts as a loss; a game with an **Undo** or a strength change during play is not rated,
     and abandoned games (New game, reload) don't count. Shown in the Free play Opponent card.
+  - *Puzzle rating*: the first attempt at every puzzle counts as a game against the puzzle's Lichess rating. Solved
+    without help scores 1, solved with hints ½; the first wrong move, **Show solution** or skipping a puzzle you
+    already started scores 0. Retries are not rated. Shown in the Puzzles card.
 
   Both start at 1200 and use the Elo formula with K = 40 for the first 20 results, then K = 20. **Reset** sets a rating
   back to 1200.
@@ -77,6 +88,7 @@ copy, separate from the computer.
 
 Shortcuts: `F` flips the board, `O` toggles the opening library, `M` turns sounds off and on. Training: `Enter` starts a round / the test,
 `Space` pauses the demo, `← →` step through it, `H` gives a hint, `R` retries and `N` picks the next line.
+Puzzles: `H` gives a hint, `N` skips / goes to the next puzzle (also `Enter` when solved), `R` retries.
 
 ## Your own openings
 
@@ -116,14 +128,17 @@ js/chess.js       rules engine (legal moves, check/mate, castling, en passant, p
 js/sound.js       sound packs (Web Audio synthesis)
 js/engine.js      Stockfish opponent (loads the engine, difficulty levels, UCI)
 vendor/stockfish/ Stockfish.js 19 (ASM-JS build, GPLv3), see its README
-js/rating.js      Elo ratings (training rating from line tests, game rating from Stockfish games)
+js/rating.js      Elo ratings (training rating from line tests, game rating from Stockfish games, puzzle rating)
+js/puzzles.js     puzzle helpers (loading, picking by rating and theme, scoring)
+js/puzzles-data.js  the puzzle set (generated, loaded when the Puzzles tab is opened)
+tools/build_puzzles.py  builds js/puzzles-data.js from the Lichess puzzle database
 js/board.js       board view (drag & drop, click-to-move, arrows, promotion picker)
 js/openings.js    built-in openings
 js/app.js         trainer, explorer, free play, custom openings
 js/pwa.js         registers the service worker (only over http/https)
 assets/themes/    piece sets and board artwork per design
 assets/icons/     app icons (home screen)
-tests/            engine and rating tests
+tests/            engine, rating and puzzle tests
 ```
 
 ## Tests
@@ -131,10 +146,25 @@ tests/            engine and rating tests
 ```sh
 node tests/test-engine.js
 node tests/test-rating.js
+node tests/test-puzzles.js
 ```
 
 Checks move generation against known perft counts, core rules, and that every built-in opening line is legal, and the
 Elo math of both ratings.
+
+## Puzzle set
+
+`js/puzzles-data.js` is a sample of the [Lichess puzzle database](https://database.lichess.org/#puzzles) (CC0, several
+million puzzles, ≈ 300 MB compressed). `tools/build_puzzles.py` keeps only well-tested, popular puzzles (rating
+deviation ≤ 90, popularity ≥ 85, ≥ 300 plays) and takes 200 at random from every 100-point rating band (500 … 2800+),
+≈ 520 KB. To rebuild it, for example with more puzzles:
+
+```sh
+curl -O https://database.lichess.org/lichess_db_puzzle.csv.zst
+pip install zstandard            # or: zstd -dc lichess_db_puzzle.csv.zst | python3 tools/build_puzzles.py -
+python3 tools/build_puzzles.py lichess_db_puzzle.csv.zst --per-band 300
+node tests/test-puzzles.js       # checks that every puzzle replays legally
+```
 
 ## Stockfish
 

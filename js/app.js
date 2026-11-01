@@ -1,5 +1,5 @@
 /*
- * Chessly — application logic: opening trainer, explorer, free play and custom openings.
+ * Chessly — application logic: opening trainer, explorer, puzzles, free play and custom openings.
  */
 (function () {
     'use strict';
@@ -14,8 +14,10 @@
         settings: 'chessly.settings.v1',
         rating: 'chessly.rating.v1',
         gameRating: 'chessly.gameRating.v1',
+        puzzleRating: 'chessly.puzzleRating.v1',
+        puzzleSeen: 'chessly.puzzleSeen.v1',
     };
-    const MODES = ['train', 'explore', 'free', 'design'];
+    const MODES = ['train', 'explore', 'puzzles', 'free', 'design'];
     // Position shown on the board in the Design tab: every piece type plus a last-move highlight.
     const DESIGN_PREVIEW_MOVES = ['e4', 'e5', 'Nf3', 'Nc6', 'Bc4', 'Bc5', 'c3', 'Nf6', 'd4', 'exd4'];
     const DESIGN_PREVIEW_PIECES = [['wK', 'light'], ['wN', 'dark'], ['bQ', 'light'], ['bN', 'dark']];
@@ -23,6 +25,9 @@
     const ANIMATION_PREVIEW_MOVES = ['Bxf7+', 'Kxf7'];
     const COLOR_NAMES = { w: 'White', b: 'Black' };
     const Rating = window.ChesslyRating;
+    const Puzzles = window.ChesslyPuzzles;
+    // Solved or skipped puzzles are remembered (newest last) so they don't come up again soon.
+    const PUZZLE_SEEN_LIMIT = 4000;
     const Sound = window.ChesslySound || { PACKS: [{ id: 'off', name: 'Off', description: '', bars: [] }], play() {}, playMove() {}, setVolume() {} };
     const DEFAULT_SOUND_PACK = 'wood';
     const engine = window.ChesslyEngine ? new window.ChesslyEngine() : null;
@@ -268,7 +273,7 @@
 
     // kind: 'rating' (training) or 'gameRating' (games vs Stockfish).
     function resetRating(kind = 'rating') {
-        const label = kind === 'rating' ? 'training rating' : 'game rating';
+        const label = { rating: 'training rating', gameRating: 'game rating', puzzleRating: 'puzzle rating' }[kind];
         if (!confirm(`Reset your ${label} (${ratingLabel(state[kind])}) to ${Rating.START_RATING}? Its history is deleted.`)) return;
         state[kind] = Rating.initialRating();
         saveJson(STORAGE[kind], state[kind]);
@@ -288,13 +293,16 @@
         $('rating-train').parentElement.title = ratingTooltip(state.rating, 'Training rating', 'rated test', 'every first test of a training round');
         $('rating-game').textContent = ratingLabel(state.gameRating);
         $('rating-game').parentElement.title = ratingTooltip(state.gameRating, 'Game rating', 'rated game', 'every finished game against Stockfish');
+        $('rating-puzzle').textContent = ratingLabel(state.puzzleRating);
+        $('rating-puzzle').parentElement.title = ratingTooltip(state.puzzleRating, 'Puzzle rating', 'rated puzzle', 'every puzzle you try');
     }
 
     // --- Game rating: games against Stockfish
 
-    function newFreeGameState(vsEngine, userColor) {
+    function newFreeGameState(vsEngine, userColor, fen = null) {
         // `level` is fixed at the start; `unrated` holds the reason a game no longer counts.
-        return { engine: vsEngine, userColor, level: state.engineLevel, unrated: null, resigned: false, rated: false, ratingChange: null };
+        // `fen` is the start position when the game did not start from the initial position (e.g. a puzzle).
+        return { engine: vsEngine, userColor, fen, level: state.engineLevel, unrated: null, resigned: false, rated: false, ratingChange: null };
     }
 
     function freeGameOver() {
@@ -362,13 +370,20 @@
         lineKey: 'all',
         depth: 0,
         color: 'w',
-        orientation: { train: 'w', explore: 'w', free: 'w', design: 'w' },
+        orientation: { train: 'w', explore: 'w', puzzles: 'w', free: 'w', design: 'w' },
         progress: loadJson(STORAGE.progress, {}),
         rating: Rating.normalize(loadJson(STORAGE.rating, null)), // training rating (line tests)
         gameRating: Rating.normalize(loadJson(STORAGE.gameRating, null)), // game rating (games vs Stockfish)
-        status: { train: null, explore: null, free: null, design: null },
+        puzzleRating: Rating.normalize(loadJson(STORAGE.puzzleRating, null)), // puzzle rating (Lichess puzzles)
+        status: { train: null, explore: null, puzzles: null, free: null, design: null },
         round: null,
         explore: { opening: null, root: null, path: [], ply: 0 },
+        puzzleSet: null, // { puzzles, themes } once js/puzzles-data.js is loaded
+        puzzleLoad: null, // 'loading' or an error message
+        puzzle: null, // the puzzle on the board, see startPuzzle()
+        puzzleSeen: loadJson(STORAGE.puzzleSeen, []),
+        puzzleTheme: 'all',
+        puzzleDifficulty: 'normal',
         dialogSide: 'w',
         libraryOpen: false,
         libraryPreferred: true,
@@ -393,7 +408,7 @@
         engineError: null,
     };
 
-    const games = { train: new Chess(), explore: new Chess(), free: new Chess(), design: new Chess() };
+    const games = { train: new Chess(), explore: new Chess(), puzzles: new Chess(), free: new Chess(), design: new Chess() };
     DESIGN_PREVIEW_MOVES.forEach((san) => games.design.move(san));
     const view = new BoardView($('board'), {
         onMove: handleBoardMove,
@@ -424,6 +439,8 @@
             freeOpponent: state.freeOpponent,
             engineLevel: state.engineLevel,
             engineSide: state.engineSide,
+            puzzleTheme: state.puzzleTheme,
+            puzzleDifficulty: state.puzzleDifficulty,
             libraryOpen: state.libraryPreferred,
             collapsed: [...state.collapsed],
         });
@@ -992,6 +1009,296 @@
         startRound(index);
     }
 
+    // ------------------------------------------------------------------ Puzzles
+    //
+    // Lichess puzzles: the opponent plays the first move, then you find the best moves while the opponent's
+    // replies are played for you. The first attempt at a puzzle is rated against the puzzle's Lichess rating:
+    // the first wrong move, showing the solution or skipping after you started counts as a loss, solving it as a
+    // win (half a win with hints). Retries are practice.
+
+    function puzzleReady() {
+        const p = state.puzzle;
+        return !!p && p.phase === 'solve' && !p.busy && games.puzzles.turn === p.color;
+    }
+
+    function clearPuzzleTimer(p = state.puzzle) {
+        if (p && p.timer) {
+            clearTimeout(p.timer);
+            p.timer = null;
+        }
+    }
+
+    // Loads the puzzle set on first use, then shows a puzzle if there is none yet.
+    function ensurePuzzle() {
+        if (state.puzzle) return;
+        if (state.puzzleSet) {
+            nextPuzzle();
+            return;
+        }
+        if (state.puzzleLoad === 'loading') return;
+        state.puzzleLoad = 'loading';
+        setStatus('puzzles', 'Loading puzzles…');
+        render();
+        Puzzles.load().then((set) => {
+            state.puzzleSet = set;
+            state.puzzleLoad = null;
+            if (!set.themes.some((t) => t.id === state.puzzleTheme)) state.puzzleTheme = 'all';
+            renderPuzzleFilters();
+            if (!state.puzzle) nextPuzzle();
+        }, (err) => {
+            state.puzzleLoad = err && err.message ? err.message : String(err);
+            setStatus('puzzles', state.puzzleLoad, 'danger');
+            render();
+        });
+    }
+
+    function puzzleTarget() {
+        return state.puzzleRating.rating + Puzzles.difficultyFor(state.puzzleDifficulty).offset;
+    }
+
+    function markPuzzleSeen(id) {
+        state.puzzleSeen = state.puzzleSeen.filter((seen) => seen !== id).concat([id]).slice(-PUZZLE_SEEN_LIMIT);
+        saveJson(STORAGE.puzzleSeen, state.puzzleSeen);
+    }
+
+    // A rated attempt that skipping would give up: you already moved or took a hint.
+    function puzzleAttemptOpen() {
+        const p = state.puzzle;
+        return !!p && p.phase !== 'done' && !p.rated && (p.moves > 0 || p.hints > 0);
+    }
+
+    // A puzzle that can be swapped without losing anything (finished, or not touched yet).
+    function puzzleUntouched() {
+        const p = state.puzzle;
+        return !p || p.phase === 'done' || (!p.rated && !p.moves && !p.hints);
+    }
+
+    function nextPuzzle() {
+        if (!state.puzzleSet) {
+            ensurePuzzle();
+            return;
+        }
+        if (puzzleAttemptOpen()) {
+            if (!confirm('Skip this puzzle? It counts as failed for your puzzle rating.')) return;
+            ratePuzzle(0);
+        }
+        const current = state.puzzle;
+        const options = { target: puzzleTarget(), seen: new Set(state.puzzleSeen), exclude: current ? current.data.id : null };
+        const data = Puzzles.pick(state.puzzleSet.puzzles, Object.assign({ theme: state.puzzleTheme }, options))
+            || Puzzles.pick(state.puzzleSet.puzzles, options);
+        startPuzzle(data, false);
+    }
+
+    // `practice`: a retry of a puzzle that was already rated.
+    function startPuzzle(data, practice) {
+        clearPuzzleTimer();
+        const game = games.puzzles;
+        game.load(data.fen);
+        const color = game.turn === 'w' ? 'b' : 'w';
+        const p = {
+            data,
+            color,
+            ply: 0, // index of the next move in data.moves
+            phase: 'setup', // setup (opponent's first move) → solve → done
+            busy: true,
+            timer: null,
+            moves: 0,
+            mistakes: 0,
+            hints: 0,
+            hintLevel: 0,
+            revealed: false,
+            marks: new Map(),
+            practice,
+            rated: practice,
+            ratingChange: null,
+        };
+        state.puzzle = p;
+        state.orientation.puzzles = color;
+        if (!practice) markPuzzleSeen(data.id);
+        setStatus('puzzles', `You play ${COLOR_NAMES[color]}. Watch the opponent's move…`);
+        render();
+        p.timer = setTimeout(() => {
+            if (state.puzzle !== p) return;
+            p.timer = null;
+            const record = playPuzzleMove(p);
+            p.phase = 'solve';
+            p.busy = false;
+            setStatus('puzzles', `${COLOR_NAMES[record.color]} played ${record.san}. Find the best move for ${COLOR_NAMES[color]}.`);
+            render();
+        }, config.demoStartDelay);
+    }
+
+    // Plays the next move of the solution (either side) on the puzzle board.
+    function playPuzzleMove(p) {
+        const record = games.puzzles.move(Puzzles.uciToMove(p.data.moves[p.ply]));
+        p.ply += 1;
+        return record;
+    }
+
+    function puzzleMoveMatches(record, uci) {
+        const played = Chess.squareName(record.from) + Chess.squareName(record.to) + (record.promotion ? record.promotion.toLowerCase() : '');
+        return played === uci;
+    }
+
+    function handlePuzzleMove(from, to, promotion) {
+        if (!puzzleReady()) return;
+        const p = state.puzzle;
+        const game = games.puzzles;
+        const record = game.move({ from, to, promotion });
+        if (!record) return;
+        p.moves += 1;
+        p.marks = new Map();
+        // Like on Lichess, any mating move is right, even if the solution has a different one.
+        const correct = puzzleMoveMatches(record, p.data.moves[p.ply]) || game.status().reason === 'checkmate';
+
+        if (correct) {
+            p.ply += 1;
+            p.hintLevel = 0;
+            if (p.ply >= p.data.moves.length || game.status().over) {
+                finishPuzzle();
+                return;
+            }
+            p.busy = true;
+            setStatus('puzzles', `✓ ${record.san} — best move! Keep going.`, 'success');
+            render();
+            p.timer = setTimeout(() => {
+                if (state.puzzle !== p) return;
+                p.timer = null;
+                const reply = playPuzzleMove(p);
+                p.busy = false;
+                if (p.ply >= p.data.moves.length) {
+                    finishPuzzle();
+                    return;
+                }
+                setStatus('puzzles', `✓ ${record.san} — opponent replied ${reply.san}. Find the next move.`, 'success');
+                render();
+            }, config.opponentDelay);
+            return;
+        }
+
+        p.mistakes += 1;
+        if (!p.rated) ratePuzzle(0);
+        p.busy = true;
+        setTimeout(() => playSound('wrong'), 90); // after the click of the move itself
+        p.marks = new Map([[record.from, 'wrong'], [record.to, 'wrong']]);
+        setStatus('puzzles', `✗ ${record.san} is not the solution. Try again — or show the solution.${puzzleRatingNote(p, p.mistakes === 1)}`, 'danger');
+        render();
+        p.timer = setTimeout(() => {
+            if (state.puzzle !== p) return;
+            p.timer = null;
+            game.undo();
+            p.marks = new Map();
+            p.busy = false;
+            render();
+        }, config.wrongMoveDelay);
+    }
+
+    // Hints never reveal the move text: first the piece, then also its target square.
+    function puzzleHint() {
+        if (!puzzleReady()) return;
+        const p = state.puzzle;
+        if (p.hintLevel >= 2) return;
+        const move = Puzzles.uciToMove(p.data.moves[p.ply]);
+        p.hints += 1;
+        p.hintLevel += 1;
+        playSound('hint');
+        p.marks = new Map([[Chess.squareIndex(move.from), 'hint']]);
+        if (p.hintLevel === 1) setStatus('puzzles', 'Hint: move the highlighted piece.', 'warning');
+        else {
+            p.marks.set(Chess.squareIndex(move.to), 'hint-target');
+            setStatus('puzzles', 'Hint: the highlighted piece goes to the marked square.', 'warning');
+        }
+        render();
+    }
+
+    // Plays the rest of the solution move by move. Counts as a failed attempt.
+    function showPuzzleSolution() {
+        if (!puzzleReady()) return;
+        const p = state.puzzle;
+        if (!p.rated) ratePuzzle(0);
+        p.revealed = true;
+        p.busy = true;
+        p.marks = new Map();
+        const step = () => {
+            if (state.puzzle !== p) return;
+            p.timer = null;
+            if (p.ply >= p.data.moves.length) {
+                finishPuzzle();
+                return;
+            }
+            const record = playPuzzleMove(p);
+            setStatus('puzzles', `Solution: ${record.san}`, 'warning');
+            render();
+            p.timer = setTimeout(step, config.opponentDelay + 350);
+        };
+        p.timer = setTimeout(step, 150);
+        render();
+    }
+
+    function finishPuzzle() {
+        const p = state.puzzle;
+        clearPuzzleTimer(p);
+        p.phase = 'done';
+        p.busy = false;
+        p.marks = new Map();
+        if (!p.rated) ratePuzzle(Puzzles.score(p));
+        const clean = !p.revealed && !p.mistakes && !p.hints;
+        // After the last move's own sound.
+        p.timer = setTimeout(() => {
+            p.timer = null;
+            playSound(clean ? 'perfect' : 'complete');
+        }, 280);
+        const note = puzzleRatingNote(p, true);
+        if (p.revealed) setStatus('puzzles', `That was the solution.${note}`, 'warning');
+        else if (clean) setStatus('puzzles', `Solved! No mistakes, no hints.${note}`, 'success');
+        else setStatus('puzzles', `Solved with ${plural(p.mistakes, 'mistake')} and ${plural(p.hints, 'hint')}.${note}`, 'success');
+        render();
+    }
+
+    function ratePuzzle(score) {
+        const p = state.puzzle;
+        const { data, change } = Rating.applyScore(state.puzzleRating, {
+            opponent: p.data.rating,
+            score,
+            meta: { puzzle: p.data.id },
+        });
+        state.puzzleRating = data;
+        saveJson(STORAGE.puzzleRating, state.puzzleRating);
+        p.rated = true;
+        p.ratingChange = change;
+    }
+
+    function puzzleRatingNote(p, mention) {
+        if (!mention) return '';
+        if (p.practice) return ' (Retry — not rated.)';
+        if (p.ratingChange) return ` Puzzle rating ${formatDelta(p.ratingChange.delta)} → ${ratingLabel(state.puzzleRating)}.`;
+        return '';
+    }
+
+    function retryPuzzle() {
+        const p = state.puzzle;
+        if (p && p.phase === 'done') startPuzzle(p.data, true);
+    }
+
+    function playPuzzleOn() {
+        const p = state.puzzle;
+        if (!p || p.phase !== 'done' || games.puzzles.status().over) return;
+        playFromPosition(games.puzzles.history().map((r) => r.san), p.color, p.data.fen);
+    }
+
+    // Theme and difficulty apply right away if nothing is lost, otherwise from the next puzzle.
+    function setPuzzleOption(key, value) {
+        if (state[key] === value) return;
+        state[key] = value;
+        saveSettings();
+        if (!state.puzzleSet) return;
+        if (puzzleUntouched()) nextPuzzle();
+        else {
+            setStatus('puzzles', 'The new setting applies from the next puzzle.');
+            render();
+        }
+    }
+
     // ------------------------------------------------------------------ Explorer
 
     function startExplorer(keepPath) {
@@ -1144,13 +1451,14 @@
     }
 
     // Continues a position (e.g. the end of an opening line) as a game against Stockfish.
-    function playFromPosition(sans, userColor) {
+    // `sans` are played from the initial position, or from `fen` if given.
+    function playFromPosition(sans, userColor, fen = null) {
         if (roundLocked() || !engine) return;
         cancelEngine();
-        games.free.reset();
+        games.free.load(fen || Chess.START_FEN);
         sans.forEach((san) => games.free.move(san));
         state.freeOpponent = 'engine';
-        state.freeGame = newFreeGameState(true, userColor);
+        state.freeGame = newFreeGameState(true, userColor, fen);
         state.orientation.free = userColor;
         engine.newGame();
         setMode('free');
@@ -1188,7 +1496,7 @@
         state.engineError = null;
         updateFreeStatus();
         render();
-        engine.bestMove(game.history().map(window.ChesslyEngine.toUci), state.engineLevel).then((best) => {
+        engine.bestMove(game.history().map(window.ChesslyEngine.toUci), state.engineLevel, state.freeGame.fen).then((best) => {
             if (token !== state.engineToken) return;
             // A short pause so instant replies at low levels do not feel abrupt.
             const wait = Math.max(0, config.opponentDelay - (Date.now() - started));
@@ -1247,6 +1555,7 @@
     function canUserMove(color) {
         if (state.mode === 'train') return testReady() && color === state.round.color;
         if (state.mode === 'explore') return !!state.explore.root;
+        if (state.mode === 'puzzles') return puzzleReady() && color === state.puzzle.color;
         if (state.mode === 'design') return false;
         if (freeGameOver()) return false;
         if (!state.freeGame.engine) return true;
@@ -1256,6 +1565,7 @@
     function handleBoardMove(from, to, promotion) {
         if (state.mode === 'train') handleTestMove(from, to, promotion);
         else if (state.mode === 'explore') handleExploreMove(from, to, promotion);
+        else if (state.mode === 'puzzles') handlePuzzleMove(from, to, promotion);
         else handleFreeMove(from, to, promotion);
     }
 
@@ -1270,6 +1580,7 @@
         saveSettings();
         if (mode === 'train') startRound();
         else render();
+        if (mode === 'puzzles') ensurePuzzle();
         if (mode === 'free') {
             if (state.freeGame.engine) warmEngine();
             updateFreeStatus();
@@ -1310,7 +1621,7 @@
     function chooseFromLibrary(id) {
         if (roundLocked()) return;
         if (id !== state.openingId) selectOpening(id);
-        if (state.mode === 'free' || state.mode === 'design') setMode('train');
+        if (state.mode === 'free' || state.mode === 'design' || state.mode === 'puzzles') setMode('train');
         if (libraryIsDrawer()) setLibraryOpen(false, false);
         render();
     }
@@ -1484,7 +1795,8 @@
         if (view.game !== game) view.setGame(game);
         view.setOrientation(state.orientation[mode]);
         const r = mode === 'train' ? state.round : null;
-        view.marks = r && r.phase === 'test' ? r.marks : new Map();
+        if (mode === 'puzzles') view.marks = state.puzzle ? state.puzzle.marks : new Map();
+        else view.marks = r && r.phase === 'test' ? r.marks : new Map();
         view.arrows = [];
         view.render();
 
@@ -1496,13 +1808,14 @@
             tab.title = tab.disabled ? 'Finish or end the round first' : '';
         });
         document.querySelectorAll('.mode-panel').forEach((panel) => panel.classList.toggle('hidden', panel.dataset.panel !== mode));
-        $('opening-card').classList.toggle('hidden', mode === 'free' || mode === 'design' || !!r);
+        $('opening-card').classList.toggle('hidden', mode === 'free' || mode === 'design' || mode === 'puzzles' || !!r);
         renderLibrary();
         $('moves-card').classList.toggle('hidden', mode === 'design');
 
         renderOpeningCard();
         renderRoundPanel();
         renderExplorePanel();
+        renderPuzzlePanel();
         renderFreePanel();
         renderDesignPanel();
         renderMoveList();
@@ -1678,6 +1991,96 @@
             </div>`;
     }
 
+    // Fills the theme and difficulty pickers (themes once the puzzle set is loaded).
+    function renderPuzzleFilters() {
+        const set = state.puzzleSet;
+        const themes = set ? set.themes : [];
+        $('puzzle-theme').innerHTML = '<option value="all">All themes</option>' +
+            themes.map((t) => `<option value="${escapeHtml(t.id)}">${escapeHtml(t.name)} (${t.count})</option>`).join('');
+        $('puzzle-theme').value = themes.some((t) => t.id === state.puzzleTheme) ? state.puzzleTheme : 'all';
+        $('puzzle-difficulty').innerHTML = Puzzles.DIFFICULTIES.map((d) =>
+            `<option value="${d.id}">${d.name}${d.offset ? ` (${d.offset > 0 ? '+' : '−'}${Math.abs(d.offset)})` : ''}</option>`).join('');
+        $('puzzle-difficulty').value = state.puzzleDifficulty;
+    }
+
+    function renderPuzzlePanel() {
+        if (state.mode !== 'puzzles') return;
+        const p = state.puzzle;
+        const body = $('puzzle-body');
+        const stat = (value, label) => `<div class="stat"><div class="stat-value">${value}</div><div class="stat-label">${label}</div></div>`;
+        $('puzzle-id').innerHTML = p
+            ? `<a href="${Puzzles.lichessUrl(p.data)}" target="_blank" rel="noopener" title="Open this puzzle on Lichess">#${escapeHtml(p.data.id)} ↗</a>`
+            : '';
+
+        if (!p) {
+            const error = state.puzzleLoad && state.puzzleLoad !== 'loading';
+            body.innerHTML = error
+                ? `<p class="round-intro">${escapeHtml(state.puzzleLoad)}</p>
+                   <button class="btn primary" type="button" data-action="load">Try again</button>`
+                : '<p class="round-intro">Loading puzzles…</p>';
+        } else {
+            const done = p.phase === 'done';
+            const themes = done
+                ? p.data.themes.map((t) => `<span class="badge">${escapeHtml(Puzzles.themeLabel(t))}</span>`).join('')
+                : '<span class="puzzle-hidden">shown when solved</span>';
+            const summary = `
+                <div class="round-summary">
+                    <span>You play</span><strong>${COLOR_NAMES[p.color]}</strong>
+                    <span>Puzzle rating</span><strong>${done ? p.data.rating : '?'}</strong>
+                    <span>Themes</span><div class="puzzle-themes">${themes}</div>
+                </div>`;
+            if (!done) {
+                const canAct = puzzleReady();
+                body.innerHTML = `${summary}
+                    <div class="train-stats">${stat(p.mistakes, 'Mistakes')}${stat(p.hints, 'Hints')}${stat(p.practice ? 'Retry' : p.rated ? 'Failed' : 'Rated', 'Attempt')}</div>
+                    <div class="round-actions grid">
+                        <button class="btn" type="button" data-action="hint" title="Hint (H)" ${canAct && p.hintLevel < 2 ? '' : 'disabled'}>
+                            💡 Hint ${p.hintLevel ? `(${p.hintLevel}/2)` : ''}</button>
+                        <button class="btn" type="button" data-action="solution" ${canAct ? '' : 'disabled'}>Show solution</button>
+                        <button class="btn ghost wide" type="button" data-action="next" title="N">Skip puzzle →</button>
+                    </div>`;
+            } else {
+                const solved = !p.revealed;
+                const clean = solved && !p.mistakes && !p.hints;
+                body.innerHTML = `${summary}
+                    <div class="round-result ${clean ? 'perfect' : ''}">
+                        <span class="round-result-icon">${clean ? '★' : solved ? '✓' : '👁'}</span>
+                        <span>${clean ? 'Solved' : solved ? 'Solved with help' : 'Solution shown'}</span>
+                    </div>
+                    ${renderPuzzleRatingChange(p)}
+                    <div class="round-actions grid">
+                        <button class="btn primary" type="button" data-action="next" title="N / Enter">Next puzzle →</button>
+                        <button class="btn" type="button" data-action="retry" title="R">↻ Retry</button>
+                        ${engine && !games.puzzles.status().over ? '<button class="btn wide" type="button" data-action="play" title="Continue the final position against Stockfish">♞ Play on vs Stockfish</button>' : ''}
+                    </div>`;
+            }
+        }
+
+        const rating = state.puzzleRating;
+        const box = $('puzzle-rating');
+        box.querySelector('.rating-summary-value').textContent = ratingLabel(rating);
+        const target = Math.max(0, puzzleTarget());
+        box.querySelector('.rating-summary-meta').textContent = (rating.games
+            ? `${plural(rating.games, 'rated puzzle')} · peak ${rating.peak}${Rating.isProvisional(rating) ? ' · provisional' : ''}`
+            : 'Unrated — your first puzzles set it') + ` · next puzzles ≈ ${target}`;
+        $('btn-puzzle-rating-reset').classList.toggle('hidden', !rating.games);
+    }
+
+    function renderPuzzleRatingChange(p) {
+        const c = p.ratingChange;
+        if (!c) {
+            return `<div class="rating-change unrated"><span>Rating</span><strong>${ratingLabel(state.puzzleRating)}</strong>
+                <span class="rating-change-note">Retry — not rated.</span></div>`;
+        }
+        const kind = c.delta > 0 ? 'up' : c.delta < 0 ? 'down' : '';
+        return `<div class="rating-change ${kind}">
+                <span>Rating</span>
+                <strong>${c.before} → ${c.after}</strong>
+                <span class="rating-change-delta">${formatDelta(c.delta)}</span>
+                <span class="rating-change-note">Puzzle rating ${c.opponent} · score ${Math.round(c.score * 100)}% (expected ${Math.round(c.expected * 100)}%)</span>
+            </div>`;
+    }
+
     function renderGameRating(vsEngine) {
         const box = $('game-rating');
         box.classList.toggle('hidden', !vsEngine || !engine);
@@ -1722,6 +2125,9 @@
         $('engine-state').textContent = engineState;
         $('engine-state').className = `engine-state ${state.engineThinking ? 'thinking' : ''}`;
         $('btn-free-undo').disabled = !games.free.history().length || state.freeGame.resigned;
+        // Opening lines start from the initial position, so a game from a puzzle position can't be saved as one.
+        $('btn-free-save').disabled = !!state.freeGame.fen;
+        $('btn-free-save').title = state.freeGame.fen ? 'Only games from the initial position can be saved as a line' : '';
         const g = state.freeGame;
         $('btn-free-resign').classList.toggle('hidden', !vsEngine || !g.engine);
         $('btn-free-resign').disabled = !g.engine || !games.free.history().length || freeGameOver();
@@ -1760,13 +2166,20 @@
             list.innerHTML = '<p class="empty">No moves yet.</p>';
             return;
         }
+        // Games from a position (puzzles) keep that position's move numbers; if Black moves first, the
+        // first row starts with an empty White cell.
+        const startFen = state.mode === 'puzzles' && state.puzzle ? state.puzzle.data.fen : state.mode === 'free' ? state.freeGame.fen : null;
+        const fenParts = startFen ? startFen.split(' ') : [];
+        const offset = fenParts[1] === 'b' ? 1 : 0;
+        const firstMove = Number(fenParts[5]) || 1;
         const cell = (i) => {
+            if (i < 0) return '<span class="move empty-cell">…</span>';
             if (i >= sans.length) return '<span></span>';
             const classes = ['move', explore || demo ? 'clickable' : '', i === current ? 'current' : '', i > current ? 'future' : ''].join(' ');
             return `<button class="${classes}" type="button" data-ply="${i + 1}">${escapeHtml(sans[i])}</button>`;
         };
         let html = '';
-        for (let i = 0; i < sans.length; i += 2) html += `<span class="move-num">${i / 2 + 1}.</span>${cell(i)}${cell(i + 1)}`;
+        for (let i = -offset; i < sans.length; i += 2) html += `<span class="move-num">${firstMove + (i + offset) / 2}.</span>${cell(i)}${cell(i + 1)}`;
         list.innerHTML = html;
         const active = list.querySelector('.move.current');
         if (active) list.scrollTop = active.offsetTop - list.clientHeight / 2;
@@ -1918,6 +2331,23 @@
             actions[button.dataset.action]();
         });
 
+        $('puzzle-panel').addEventListener('click', (e) => {
+            const button = e.target.closest('[data-action]');
+            if (!button || button.disabled) return;
+            const actions = {
+                load: ensurePuzzle,
+                hint: puzzleHint,
+                solution: showPuzzleSolution,
+                next: nextPuzzle,
+                retry: retryPuzzle,
+                play: playPuzzleOn,
+            };
+            actions[button.dataset.action]();
+        });
+        $('puzzle-theme').addEventListener('change', (e) => setPuzzleOption('puzzleTheme', e.target.value));
+        $('puzzle-difficulty').addEventListener('change', (e) => setPuzzleOption('puzzleDifficulty', e.target.value));
+        $('btn-puzzle-rating-reset').addEventListener('click', () => resetRating('puzzleRating'));
+
         $('btn-first').addEventListener('click', () => explorerGo(0));
         $('btn-prev').addEventListener('click', () => explorerGo(state.explore.ply - 1));
         $('btn-next').addEventListener('click', () => explorerGo(state.explore.ply + 1));
@@ -2000,6 +2430,14 @@
                     shortcuts[key]();
                 }
             }
+            if (state.mode === 'puzzles' && state.puzzle) {
+                const done = state.puzzle.phase === 'done';
+                const shortcuts = done ? { n: nextPuzzle, enter: nextPuzzle, r: retryPuzzle } : { h: puzzleHint, n: nextPuzzle };
+                if (shortcuts[key]) {
+                    e.preventDefault();
+                    shortcuts[key]();
+                }
+            }
             if (state.mode === 'explore') {
                 const ex = state.explore;
                 const target = { arrowleft: ex.ply - 1, arrowright: ex.ply + 1, home: 0, end: ex.path.length }[key];
@@ -2042,6 +2480,9 @@
         state.freeOpponent = settings.freeOpponent === 'engine' && engine ? 'engine' : 'human';
         state.engineSide = ENGINE_SIDES.includes(settings.engineSide) ? settings.engineSide : 'w';
         if (engine) state.engineLevel = window.ChesslyEngine.levelFor(settings.engineLevel).level;
+        if (typeof settings.puzzleTheme === 'string') state.puzzleTheme = settings.puzzleTheme;
+        state.puzzleDifficulty = Puzzles.difficultyFor(settings.puzzleDifficulty).id;
+        renderPuzzleFilters();
         const startSide = state.engineSide === 'random' ? (Math.random() < 0.5 ? 'w' : 'b') : state.engineSide;
         state.freeGame = newFreeGameState(state.freeOpponent === 'engine', startSide);
         if (state.freeGame.engine) state.orientation.free = startSide;
@@ -2055,6 +2496,10 @@
         if (state.mode === 'free' && state.freeGame.engine) {
             warmEngine();
             engineTurn();
+        }
+        if (state.mode === 'puzzles') {
+            render();
+            ensurePuzzle();
         }
     }
 

@@ -428,6 +428,9 @@ body.library-open .library {
         max-height: none;
         height: 100vh;
         height: 100dvh;
+        padding-top: max(14px, env(safe-area-inset-top));
+        padding-bottom: max(10px, env(safe-area-inset-bottom));
+        padding-left: max(10px, env(safe-area-inset-left));
         border-radius: 0 var(--radius) var(--radius) 0;
         box-shadow: 0 0 40px rgba(0, 0, 0, 0.6);
     }
@@ -547,7 +550,7 @@ body.library-open .library {
     .layout {
         flex-direction: row;
         align-items: flex-start;
-        padding: 8px 12px;
+        padding: 8px 12px max(8px, env(safe-area-inset-bottom));
         gap: 12px;
     }
 
@@ -574,6 +577,65 @@ html {
 
 .board {
     -webkit-touch-callout: none;
+}
+
+/* ------------------------------------------------------------------ iPhone / iOS Safari */
+
+/* No automatic text enlargement when an iPhone is rotated to landscape. */
+html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
+
+/* Landscape iPhones: keep the page clear of the notch / Dynamic Island on the sides
+   (both insets are 0 in portrait, where the board stays edge to edge). */
+body {
+    padding-right: env(safe-area-inset-right);
+    padding-left: env(safe-area-inset-left);
+}
+
+/*
+ * Phones: the status (training feedback such as "✓ correct" or "✗ wrong") moves right under the board,
+ * otherwise it sits below the panels and out of sight while you play.
+ */
+@media (max-width: 640px), (max-width: 960px) and (max-height: 500px) and (orientation: landscape) {
+    .board-toolbar {
+        order: -2;
+    }
+
+    .status {
+        order: -1;
+        padding: 9px 12px;
+    }
+
+    .tab {
+        white-space: nowrap;
+    }
+}
+
+/* Touch screens: text fields need at least 16px, otherwise iOS Safari zooms into the page on focus. */
+@media (pointer: coarse) {
+    input:not([type='range']):not([type='color']),
+    select,
+    textarea,
+    .select {
+        font-size: 16px;
+    }
+}
+
+/* Touch screens keep :hover after a tap; hover-only effects would look like a selection there. */
+@media (hover: none) {
+    .design-option:hover {
+        transform: none;
+    }
+
+    .design-option:not(.active):hover {
+        border-color: transparent;
+    }
+
+    .design-option:not(.active):hover .sound-swatch span {
+        animation: none;
+    }
 }
 
 /* Touch screens: no double-tap zoom delay on controls. */
@@ -2242,4 +2304,107 @@ body.round-locked .library-add {
 
 .round-actions.grid .wide {
     grid-column: 1 / -1;
+}
+
+/* ------------------------------------------------------------------ Puzzles */
+
+.puzzle-card .card-head {
+    margin-bottom: 10px;
+}
+
+.puzzle-id a {
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    text-decoration: none;
+}
+
+.puzzle-id a:hover {
+    color: var(--accent);
+}
+
+.puzzle-body {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.puzzle-themes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.round-summary .puzzle-themes .badge {
+    color: var(--text);
+    font-size: 11px;
+}
+
+.round-summary .puzzle-hidden {
+    font-style: italic;
+}
+
+.puzzle-filters {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.puzzle-filters .field {
+    min-width: 0;
+    margin-bottom: 0;
+}
+
+.puzzle-filters .select {
+    width: 100%;
+    min-width: 0;
+}
+
+.puzzle-card .rating-summary {
+    margin-top: 14px;
+}
+
+.puzzle-credit {
+    margin: 10px 0 0;
+}
+
+.puzzle-credit a {
+    color: inherit;
+}
+
+/* Empty White cell when a game from a position starts with a Black move. */
+.move.empty-cell {
+    color: var(--text-muted);
+    cursor: default;
+}
+
+/* Phones: five tabs a little tighter, and the three ratings stacked (label above number) so they fit. */
+@media (max-width: 640px) {
+    .tab {
+        padding: 9px 2px;
+        font-size: 13px;
+    }
+
+    .rating-chip {
+        align-items: center;
+        gap: 6px;
+        padding: 3px 10px;
+        border-radius: 12px;
+    }
+
+    .rating-chip-part {
+        flex-direction: column;
+        align-items: center;
+        gap: 0;
+        line-height: 1.15;
+    }
+
+    .rating-chip-part + .rating-chip-part {
+        padding-left: 6px;
+    }
+
+    .rating-chip-part > span {
+        font-size: 9px;
+    }
 }

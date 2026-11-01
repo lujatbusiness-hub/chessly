@@ -130,11 +130,12 @@
             if (this.worker) this.worker.postMessage(command);
         }
 
-        // `moves`: UCI moves from the start position. Resolves with { from, to, promotion } (board indices) or null.
-        bestMove(moves, level) {
+        // `moves`: UCI moves from the start position, or from `fen` if given. Resolves with { from, to, promotion }
+        // (board indices) or null.
+        bestMove(moves, level, fen = null) {
             return this.start().then(() => new Promise((resolve) => {
                 if (this.next) this.next.resolve(null);
-                this.next = { moves, level: levelFor(level), resolve };
+                this.next = { moves, level: levelFor(level), fen, resolve };
                 if (this.current) {
                     this.current.cancelled = true;
                     this.post('stop');
@@ -153,7 +154,7 @@
             this.post(`setoption name UCI_LimitStrength value ${level.elo ? 'true' : 'false'}`);
             if (level.elo) this.post(`setoption name UCI_Elo value ${level.elo}`);
             this.post(`setoption name Skill Level value ${level.elo ? 20 : level.skill}`);
-            this.post(`position startpos${job.moves.length ? ' moves ' + job.moves.join(' ') : ''}`);
+            this.post(`position ${job.fen ? 'fen ' + job.fen : 'startpos'}${job.moves.length ? ' moves ' + job.moves.join(' ') : ''}`);
             this.post(level.depth ? `go depth ${level.depth} movetime ${level.movetime}` : `go movetime ${level.movetime}`);
         }
 

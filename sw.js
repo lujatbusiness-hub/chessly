@@ -1,12 +1,12 @@
 /*
  * Chessly — service worker, so the app can be installed on a phone and works offline.
  *
- * The app shell (HTML, CSS, JS, icons) and Stockfish are cached on install; everything else
+ * The app shell (HTML, CSS, JS, icons), the puzzle set and Stockfish are cached on install; everything else
  * (theme artwork) is cached the first time it is used. Requests are answered from the cache
  * right away and refreshed in the background, so a new version shows up on the next start.
  * Bump VERSION to drop the old cache completely.
  */
-const VERSION = 'chessly-v3';
+const VERSION = 'chessly-v5';
 
 const PRECACHE = [
     './',
@@ -20,6 +20,8 @@ const PRECACHE = [
     'js/sound.js',
     'js/engine.js',
     'js/rating.js',
+    'js/puzzles.js',
+    'js/puzzles-data.js',
     'js/board.js',
     'js/app.js',
     'js/pwa.js',
